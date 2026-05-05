@@ -1,0 +1,10 @@
+# database files
+*.db
+
+# Python cache
+__pycache__/
+*.pyc
+
+# environment variables
+.env
+
