@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
 from uuid import UUID, uuid4
+from zoneinfo import ZoneInfo
+
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 import sqlite3
@@ -126,7 +128,7 @@ conn.close()
 @app.post("/api/v2/cart/{user_id}/items",status_code=201,response_model=CartResponse)
 def add_to_cart(user_id: int, data: AddCartItemRequest):
     # 建立時間
-    now = datetime.now(timezone.utc).isoformat()
+    now_taipei = datetime.now(timezone.utc).astimezone(ZoneInfo("Asia/Taipei")).isoformat()
 
     # 建立連線
     conn = sqlite3.connect(DB_PATH)
@@ -143,7 +145,7 @@ def add_to_cart(user_id: int, data: AddCartItemRequest):
     if row is None:
         cart_id = str(uuid4())  # 建立 cart_id
         cursor.execute("INSERT INTO carts(id, user_id, updated_at) VALUES(?,?,?)",
-                       (cart_id,user_id,now)
+                       (cart_id,user_id,now_taipei)
                        )
     # cart exist -> Keep use
     else:
@@ -181,13 +183,13 @@ def add_to_cart(user_id: int, data: AddCartItemRequest):
                             cart_id,
                             str(data.menu_item_id),
                             data.quantity,
-                            now
+                            now_taipei
                        )
         )
 
     # 建立購物車最後更新時間
     cursor.execute("UPDATE carts SET updated_at = ? WHERE id = ? ",
-                   (now, cart_id))
+                   (now_taipei, cart_id))
 
     # 查出最新 items
     cursor.execute("""SELECT menu_item_id,quantity FROM cart_items 
@@ -205,7 +207,7 @@ def add_to_cart(user_id: int, data: AddCartItemRequest):
         CartResponse(
             user_id = user_id,
             cart_id = cart_id,
-            updated_at= now,
+            updated_at= now_taipei,
             items =[CartItemResponse(menu_item_id=i[0],quantity=i[1])
                                     for i in items]
             )
@@ -222,6 +224,7 @@ def get_cart(user_id: int,conn=Depends(get_db)):
 
     cursor.execute("SELECT id, updated_at FROM carts WHERE user_id = ?"
                    ,(user_id,))
+
     c_row = cursor.fetchone()
 
     if c_row is None:
@@ -256,7 +259,7 @@ def get_cart(user_id: int,conn=Depends(get_db)):
 # (購物車通常都是局部修改居多，真實場景很少使用的put(因此沒有設計))
 #-------------------------------------------------------
 @app.patch("/api/v2/cart/{user_id}/items/{menu_item_id}",response_model=CartResponse)
-def patch_cart_items(user_id: int, menu_item_id: UUID, data: UpdateCartItemRequest):
+def patch_cart_items(user_id: int, menu_item_id: UUID, data: UpdateCartItemRequest,conn=Depends(get_db)):
     # 先查詢購物車
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM carts WHERE user_id = ?",(user_id,))
@@ -307,7 +310,9 @@ def patch_cart_items(user_id: int, menu_item_id: UUID, data: UpdateCartItemReque
     response = CartResponse(
         user_id = user_id,
         cart_id = cart_id,
-        updated_at = datetime.now(timezone.utc).isoformat(),
+        updated_at = datetime.now(timezone.utc)
+                     .astimezone(ZoneInfo("Asia/Taipei"))
+                     .isoformat(),
         items = [CartItemResponse(
                         menu_item_id=item[0],
                         quantity=item[1]

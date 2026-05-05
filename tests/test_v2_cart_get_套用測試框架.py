@@ -1,6 +1,8 @@
 # 李品緯(JasonLee)
 import sqlite3
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
 import pytest
 from uuid import uuid4
 from fastapi.testclient import TestClient
@@ -38,7 +40,7 @@ def setup_db():
             cart_id TEXT,
             menu_item_id TEXT,
             quantity INTEGER
-            
+            added_at TEXT NOT NULL
         )
     """)
 
@@ -79,7 +81,9 @@ def seed_cart_with_items():
     cart_id = str(uuid4())
     cart_item_id= str(uuid4())
     menu_item_id = str(uuid4())
-    now = datetime.now(timezone.utc).isoformat()
+    now = (datetime.now(timezone.utc)
+           .astimezone(ZoneInfo("Asia/Taipei"))
+           .isoformat())
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -101,7 +105,9 @@ def seed_cart_with_items():
 def seed_cart_not_with_items():
     user_id = 2
     cart_id = str(uuid4())
-    now = datetime.now(timezone.utc).isoformat()
+    now = (datetime.now(timezone.utc)
+           .astimezone(ZoneInfo("Asia/Taipei"))
+           .isoformat())
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
