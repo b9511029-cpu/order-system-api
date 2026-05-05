@@ -263,12 +263,14 @@ def patch_cart_items(user_id: int, menu_item_id: UUID, data: UpdateCartItemReque
     # 先查詢購物車
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM carts WHERE user_id = ?",(user_id,))
+
     c_row = cursor.fetchone() # tuple (cart_id,)
 
-    cart_id = c_row[0] # tuple unpacking
     # 判斷是否購物車是否存在
-    if cart_id is None:
+    if c_row is None:
         raise HTTPException(status_code=404, detail="cart not found")
+
+    cart_id = c_row[0]  # tuple unpacking
 
     cursor.execute("SELECT quantity FROM cart_items WHERE cart_id = ? AND menu_item_id = ?",
                    (cart_id,str(menu_item_id))
@@ -281,9 +283,6 @@ def patch_cart_items(user_id: int, menu_item_id: UUID, data: UpdateCartItemReque
 
     #　更新
     new_qty = data.quantity
-
-    if new_qty < 0:
-        raise HTTPException(status_code=400, detail="quantity cannot be negative")
 
     if new_qty > 20:
         raise HTTPException(status_code=400, detail="quantity cannot be greater than 20")
