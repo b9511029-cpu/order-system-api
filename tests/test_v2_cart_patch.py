@@ -31,7 +31,13 @@ client = TestClient(app)
 #--------------------------------------------------------------
 # update (Patch) Test
 #--------------------------------------------------------------
+def test_patch_cart_item_should_update_quantity():
+    # Given: Arrange (準備資料)
 
+    # When: Act (呼叫API)
+
+    # Then: Assert (驗證結果)
+    pass
 
 
 
