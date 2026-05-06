@@ -323,15 +323,6 @@ def patch_cart_items(user_id: int, menu_item_id: UUID, data: UpdateCartItemReque
 
     return response
 
-
-
-
-
-
-
-
-
-
 #----------------------------
 # SQLite + Delete Cart
 #----------------------------

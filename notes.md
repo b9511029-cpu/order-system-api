@@ -71,8 +71,59 @@ ex76test_v2.py:268: AssertionError
 ***加入累加超過上限檢查 [Guard Clause（防衛式寫法）
 if current_quantity + data.quantity > 20: # 累加結果 > 20 會執行raise 中斷
     raise HTTPException(status_code=400,detail="Total quantity cannot exceed 20")
+
 ---
 Q3: 
+
+
+---
+
+
+---
+# 購物車刪除 設計想法
+Delete: 直接刪除資源,本質就是 消失
+Q1: DELETE 你要刪的是哪一層？ item
+
+Q2: DELETE 的「流程是什麼？
+delete flow : 找 cart → 找 item → 刪掉那一筆 → 回傳cart 本質是「消失」
+-> 直接移除資源
+
+Q3: DELETE 成功後要回什麼？ 回更新過後的cart
+
+Q4: DELETE 的錯誤怎麼處理？
+1.cart 不存在  404 cart not found
+2.item 不存在  404 item not found
+
+Q5: DELETE 跟 PATCH 差在哪？
+PATCH : 改狀態 (update quantity)
+DELETE : 移除資料 (remove row)
+
+Q6: （設計陷阱）
+PATCH 已經有： quantity = 0 → delete item (原因:業務刪除（語意）)
+DELETE 還要存在嗎？ 要 資源被移除 (原因:REST 刪除（語意）)
+#### 兩個是不同層級語意
+
+Q7: DELETE 測試你要怎麼想？
+1. 正常刪除 ->item 存在 → 刪掉 → items 少一個
+2. item 不存在-> 404
+3. cart 不存在-> 404
+patch flow :找 cart → 找 item → 改 quantity → 回傳cart 本質是「狀態變更」
+->改數量 / 刪掉 item（quantity = 0）
+
+delete flow:
+                user_id → cart
+                        ↓
+                    menu_item
+                        ↓
+                    delete row
+                        ↓
+                return updated cart
+
+
+
+
+
+
 
 
 ---
