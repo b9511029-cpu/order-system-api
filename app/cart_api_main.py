@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
     id TEXT PRIMARY KEY,
     cart_id TEXT NOT NULL,
     menu_item_id TEXT NOT NULL,
-    quantity INTEGER CHECK(quantity > 0 AND quantity <= 20),
+    quantity INTEGER,
     added_at TEXT NOT NULL,
     UNIQUE (cart_id, menu_item_id),
     FOREIGN KEY (cart_id) REFERENCES carts (id) ON DELETE CASCADE

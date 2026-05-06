@@ -47,8 +47,6 @@ def setup_db():
     conn.commit()
     conn.close() # test end close
 
-
-
 # ------------------------------
 # Clean DB
 # ------------------------------
@@ -150,25 +148,29 @@ def test_get_cart_should_return_items():
 def test_get_cart_should_return_empty_items():
     # Given: Arrange (準備資料)
     cart_id, user_id = seed_cart_not_with_items() # tuple unpacking
+
     # When:  Act (呼叫 API)
     res = client.get(f"/api/v2/cart/{user_id}")
+
     # Then:  Assert (驗證結果)
     assert res.status_code == 200
     data = res.json()
-    # 驗證 Cart 內部資料
+    # Cart 內部資料
     assert data["user_id"] == user_id
     assert data["cart_id"] == cart_id
     assert data["updated_at"] is not None
-    # 驗證 CartItem = empty
+    # CartItem = empty
     assert data["items"] == []
-    assert isinstance(data["items"],list) # 順便驗證型別
+    assert isinstance(data["items"],list) # 驗證型別
 
 
 def test_get_cart_not_found_should_fail():
     # Given: Arrange (DB 空的 , 沒有 Cart)
     user_id = 999
+
     # When: 呼叫 (API)
     res = client.get(f"/api/v2/cart/{user_id}")
+
     # Then: Assert 驗證錯誤 404
     assert res.status_code == 404
     data = res.json()

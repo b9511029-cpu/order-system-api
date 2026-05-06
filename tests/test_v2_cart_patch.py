@@ -41,12 +41,15 @@ def setup_db():
                 id TEXT PRIMARY KEY,
                 cart_id TEXT NOT NULL,
                 menu_item_id TEXT NOT NULL,
-                quantity INTEGER CHECK (quantity > 0 AND quantity < 20),
+                quantity INTEGER,
                 added_at TEXT NOT NULL,
                 UNIQUE (cart_id, menu_item_id),
                 FOREIGN KEY (cart_id) REFERENCES carts (id) ON DELETE CASCADE
             )
     """)
+
+    conn.commit()
+    conn.close()
 
 
 #---------------------
@@ -73,7 +76,7 @@ def seed_cart_with_item():
     cart_id = str(uuid4())
     cart_item_id = str(uuid4())
     menu_item_id = str(uuid4())
-    now = datetime.now(timezone.utc).astimezone(ZoneInfo("Asia/Taipei"))
+    now = datetime.now(timezone.utc).astimezone(ZoneInfo("Asia/Taipei")).isoformat()
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -205,7 +208,7 @@ def test_patch_cart_item_quantity_negative_should_fail():
     # Then: Assert (驗證錯誤)
     assert res.status_code == 422
     data = res.json()
-    assert data["detail"] in data
+    assert "detail" in data
 
 
 
