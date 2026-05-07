@@ -326,6 +326,68 @@ def patch_cart_items(user_id: int, menu_item_id: UUID, data: UpdateCartItemReque
 #----------------------------
 # SQLite + Delete Cart
 #----------------------------
+@app.delete("/api/v2/cart/{user_id}/items/{menu_item_id}",response_model=CartResponse)
+def delete_cart_item(user_id: int, menu_item_id: UUID,conn=Depends(get_db)):
+
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM carts WHERE user_id = ?",(user_id,))
+
+    c_row = cursor.fetchone()
+
+    if c_row is None:
+        raise HTTPException(status_code=404, detail="cart not found")
+
+    cart_id = c_row[0]
+
+    cursor.execute("SELECT menu_item_id, quantity FROM cart_items WHERE cart_id = ?",
+                   (cart_id,))
+
+    ci_row = cursor.fetchall()
+
+    if ci_row is None:
+        raise HTTPException(status_code=404, detail="item not found")
+
+    cursor.execute("DELETE FROM cart_items WHERE cart_id = ? AND menu_item_id = ?",
+                   (cart_id,str(menu_item_id))
+                   )
+    conn.commit()
+
+    cursor.execute(""" SELECT menu_item_id, quantity FROM cart_items 
+                           WHERE cart_id = ? AND menu_item_id = ? """,
+                   (cart_id,str(menu_item_id)))
+
+    items = cursor.fetchall()
+
+    response = CartResponse(
+        user_id = user_id,
+        cart_id =cart_id,
+        updated_at = datetime.now(timezone.utc)
+                    .astimezone(ZoneInfo("Asia/Taipei"))
+                    .isoformat(),
+        items = [CartItemResponse(
+                        menu_item_id = menu_item_id,
+                        quantity= quantity
+                    )for menu_item_id, quantity in items
+                 ]
+        )
+
+    return response
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
