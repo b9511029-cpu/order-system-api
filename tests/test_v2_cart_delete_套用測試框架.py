@@ -102,6 +102,9 @@ app.dependency_overrides[get_db] = override_get_db
 #-------------------------
 client = TestClient(app)
 
+
+
+
 def test_delete_cart_item_should_succeed():
     # Given: Arrange (準備資料)
     cart_id, user_id, menu_item_id = seed_cart_with_item()
@@ -131,3 +134,4 @@ def test_delete_cart_not_found_should_fail():
 
 def test_delete_cart_item_not_found_should_fail():
     pass
+
