@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
 from uuid import UUID, uuid4
+from xml.sax.handler import property_interning_dict
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException, Depends
@@ -340,12 +341,15 @@ def delete_cart_item(user_id: int, menu_item_id: UUID,conn=Depends(get_db)):
 
     cart_id = c_row[0]
 
-    cursor.execute("SELECT menu_item_id, quantity FROM cart_items WHERE cart_id = ?",
-                   (cart_id,))
+    cursor.execute("SELECT menu_item_id, quantity FROM cart_items "
+                   "WHERE cart_id = ? AND menu_item_id = ?",
+                   (cart_id, str(menu_item_id))
+                   )
 
     ci_row = cursor.fetchall()
 
-    if ci_row is None:
+    if not ci_row:
+        print("404 execute item")
         raise HTTPException(status_code=404, detail="item not found")
 
     cursor.execute("DELETE FROM cart_items WHERE cart_id = ? AND menu_item_id = ?",
@@ -353,11 +357,14 @@ def delete_cart_item(user_id: int, menu_item_id: UUID,conn=Depends(get_db)):
                    )
     conn.commit()
 
+
     cursor.execute(""" SELECT menu_item_id, quantity FROM cart_items 
                            WHERE cart_id = ? AND menu_item_id = ? """,
                    (cart_id,str(menu_item_id)))
 
     items = cursor.fetchall()
+
+
 
     response = CartResponse(
         user_id = user_id,
@@ -373,18 +380,6 @@ def delete_cart_item(user_id: int, menu_item_id: UUID,conn=Depends(get_db)):
         )
 
     return response
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

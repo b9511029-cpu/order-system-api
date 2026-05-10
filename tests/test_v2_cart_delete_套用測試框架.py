@@ -103,8 +103,6 @@ app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 
-
-
 def test_delete_cart_item_should_succeed():
     # Given: Arrange (準備資料)
     cart_id, user_id, menu_item_id = seed_cart_with_item()
@@ -117,9 +115,11 @@ def test_delete_cart_item_should_succeed():
     data = res.json()
     assert data["user_id"] == user_id
     assert data["cart_id"] == cart_id
-    assert len(data["updated_at"]) > 0
+    assert isinstance(data["items"], list)
     assert len(data["items"]) == 0
-    assert isinstance(data["items"],list)
+    assert len(data["updated_at"]) > 0
+
+
     # 資料庫已刪除 item
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -130,8 +130,41 @@ def test_delete_cart_item_should_succeed():
 
 
 def test_delete_cart_not_found_should_fail():
-    pass
+    # Given: Arrange(準備資料)
+    user_id = 999
+    menu_item_id = str(uuid4())
+
+    # When: Act (呼叫API)
+    res = client.delete(f"/api/v2/cart/{user_id}/items/{menu_item_id}")
+
+    # Then: Assert (驗證 cart 錯誤)
+    assert res.status_code == 404
+    data = res.json()
+    assert data["detail"] == "cart not found"
+    assert "detail" in data
+
 
 def test_delete_cart_item_not_found_should_fail():
-    pass
+    # Given: Arrange (準備資料)
+    cart_id, user_id, menu_item_id = seed_cart_with_item()
+    fake_menu_item_id = str(uuid4())
+
+    # When: Act (呼叫API)
+    res = client.delete(f"/api/v2/cart/{user_id}/items/{fake_menu_item_id}")
+
+    # Then: Assert (驗證 item 錯誤)
+    assert res.status_code == 404
+    data = res.json()
+    assert data
+    assert data["detail"] == "item not found"
+    assert "detail" in data
+    # 驗證 DB 購物車還存在 沒被誤刪
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM carts WHERE cart_id = ?",
+                       (cart_id,))
+        # 語意明確
+        cart_count = cursor.fetchone()[0]
+        assert cart_count == 1,"cart should still exist"
+
 
