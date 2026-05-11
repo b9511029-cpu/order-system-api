@@ -56,10 +56,10 @@ DB_PATH.parent.mkdir(parents=True, exist_ok=True) # 確保資料夾存在，如�
 
 #----------------- 建立 SQLite 3 connect (Development and testing 開發測試) -----------------
 import sqlite3 # sqlite 資料庫 全域變數
-conn = sqlite3.connect(DB_PATH, check_same_thread=False) # Establish(建立) a database
+conn = sqlite3.connect(DB_PATH, check_same_thread=False) # 連線到指定 DB
+cursor = conn.cursor() # cursor(游標) 用於操作資料庫行為 , 回傳時轉換成python 語言
 
-cursor = conn.cursor() # cursor(游標)物件 ， 像 一個全能型助理，幫你操作與管理資料庫的助理，並返回結果，會自動轉成python的語言
-# 建立 user.db 資料庫表單，在表單中建立使用者資料欄位
+# 建立 users TABLE
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
                user_id INTEGER PRIMARY KEY,
@@ -69,9 +69,9 @@ CREATE TABLE IF NOT EXISTS users (
                created_at TEXT NOT NULL
 )
 """)
-conn.commit() # 提交連線
-conn.close() # 關閉連線
-#------------------------------------- 資料庫建檔完成 -------------------------------------
+conn.commit()
+conn.close()
+
 
 
 # -----------------------
@@ -112,7 +112,7 @@ def created_user(item: UserItem):
 @app.get("/api/v1/users", response_model=list[UserItem])
 def get_all_users():
     # 直接開啟連線
-    conn = sqlite3.connect("db/users.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     # 沒設定 row_factory(預設只能用列表索引存取資料)，但是有設定可以透過工廠方法，改成sqlite3.row 物件(可用字典key取欄位的職)
     cursor = conn.cursor()
@@ -140,7 +140,7 @@ def get_all_users():
 @app.get("/api/v1/users/{user_id}", response_model=UserItem)
 def get_single_user(user_id: int):
     # 連線 SQLite
-    conn = sqlite3.connect("db/users.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row  # 這樣 row 可以用 key 取欄位
     cursor = conn.cursor()
 
@@ -171,7 +171,7 @@ def get_single_user(user_id: int):
 # -----------------------
 @app.patch("/api/v1/users/{user_id}", response_model=UserItem)
 def update_user(user_id: int, user: UserUpdate):
-    conn = sqlite3.connect("db/users.db", check_same_thread=False)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
@@ -213,40 +213,39 @@ def update_user(user_id: int, user: UserUpdate):
 # -----------------------
 @app.delete("/api/v1/users/{user_id}", status_code=204)
 def delete_user(user_id: int):
-    conn = sqlite3.connect("db/users.db", check_same_thread=False)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
 
     # 先檢查使用者是否存在
     cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
     if not cursor.fetchone():
         conn.close()
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="user not found")
 
     # 刪除使用者
     cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
     conn.commit()
     conn.close()
 
-    # 204 表示成功但沒有回傳內容
-    return
+    return  # 204 表示成功但沒有回傳內容
 
 # -----------------------------
 # Use login API: 使用者登入
 # -----------------------------
 @app.post("/api/v1/login", status_code=200)
 def login(user: UserLogin):
-    conn = sqlite3.connect("db/users.db", check_same_thread=False)
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM users WHERE email = ?", (user.email,))
-    db_user = cursor.fetchone()
-    conn.close()
 
-    if not db_user:
+    user_item = cursor.fetchone()
+
+    if not user_item:
         raise HTTPException(status_code=404, detail="使用者不存在")
 
-    if db_user["password"] != user.password:
+    if user_item["password"] != user.password:
         raise HTTPException(status_code=401, detail="密碼錯誤")
 
     return {"message": "登入成功"}
