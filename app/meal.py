@@ -41,7 +41,7 @@ class MenuItemUpdate(BaseModel):
 #-------------------------------------------------------------
 
 # 用 pathlib 設定該檔案的完整路徑路徑(現代python 路徑標準庫)
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR /"db"/"menu.db"
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 

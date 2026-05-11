@@ -5,9 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
 from uuid import UUID, uuid4
-from xml.sax.handler import property_interning_dict
 from zoneinfo import ZoneInfo
-
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 import sqlite3
@@ -349,7 +347,7 @@ def delete_cart_item(user_id: int, menu_item_id: UUID,conn=Depends(get_db)):
     ci_row = cursor.fetchall()
 
     if not ci_row:
-        print("404 execute item")
+
         raise HTTPException(status_code=404, detail="item not found")
 
     cursor.execute("DELETE FROM cart_items WHERE cart_id = ? AND menu_item_id = ?",

@@ -3,7 +3,7 @@ import sqlite3
 from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
-from API作品.app.cart_api_main import app, DB_PATH
+from API作品.app.cart import app, DB_PATH
 
 #--------------------------------------------------------------
 # SQLite DB clear

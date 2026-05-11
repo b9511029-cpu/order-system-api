@@ -5,6 +5,7 @@
 # 測試 (post、get、update、patch、delete)
 # 使用者(登入) API Create # 用 post 設計,強調有執行操作行為,登入行為必須要 比對資料與驗證資料
 from datetime import datetime
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
@@ -12,7 +13,7 @@ from starlette.middleware.cors import CORSMiddleware
 # ----------------------------------- 建立 user API ----------------------------------------
 app = FastAPI(title="UsersItem API")
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware, # type: ignore
     allow_origins=["http://127.0.0.1:5500"],
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,9 +44,19 @@ class UserLogin(BaseModel):
     password: str = Field(min_length=8, max_length=15)
 
 
+#---------------------
+# Set connect path
+#---------------------
+# 使用 pathlib 設定 db_path 絕對路徑
+BASE_DIR = Path(__file__).resolve().parent.parent # 找到這個檔案的根目錄
+DB_PATH = BASE_DIR /"db"/"users.db" # 將根目錄的路徑+資料庫的路徑 = 資料庫完整路徑(提供給資料庫連線使用)
+DB_PATH.parent.mkdir(parents=True, exist_ok=True) # 確保資料夾存在，如果不存在就幫你建立(自動補齊環境差異)
+
+
+
 #----------------- 建立 SQLite 3 connect (Development and testing 開發測試) -----------------
 import sqlite3 # sqlite 資料庫 全域變數
-conn = sqlite3.connect("db/users.db", check_same_thread=False) # Establish(建立) a database
+conn = sqlite3.connect(DB_PATH, check_same_thread=False) # Establish(建立) a database
 
 cursor = conn.cursor() # cursor(游標)物件 ， 像 一個全能型助理，幫你操作與管理資料庫的助理，並返回結果，會自動轉成python的語言
 # 建立 user.db 資料庫表單，在表單中建立使用者資料欄位
@@ -66,10 +77,10 @@ conn.close() # 關閉連線
 # -----------------------
 # POST API: 新增使用者
 # -----------------------
-@app.post("/api/v1/users/", status_code=201, response_model=UserItem)
+@app.post("/api/v1/users", status_code=201, response_model=UserItem)
 def created_user(item: UserItem):
     # 直接連 SQLite
-    conn = sqlite3.connect("db/users.db", check_same_thread=False)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
 
     # 檢查 user_id 是否存在
@@ -98,7 +109,7 @@ def created_user(item: UserItem):
 # GET API: 查詢所有使用者
 # -----------------------
 
-@app.get("/api/v1/users/", response_model=list[UserItem])
+@app.get("/api/v1/users", response_model=list[UserItem])
 def get_all_users():
     # 直接開啟連線
     conn = sqlite3.connect("db/users.db")
@@ -222,7 +233,7 @@ def delete_user(user_id: int):
 # -----------------------------
 # Use login API: 使用者登入
 # -----------------------------
-@app.post("/api/v1/login/", status_code=200)
+@app.post("/api/v1/login", status_code=200)
 def login(user: UserLogin):
     conn = sqlite3.connect("db/users.db", check_same_thread=False)
     conn.row_factory = sqlite3.Row

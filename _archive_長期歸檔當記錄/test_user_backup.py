@@ -2,7 +2,7 @@
 from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
-from API作品.app.user_api_main import app
+from API作品.app.user import app
 
 # 測試 user api
 client = TestClient(app)
@@ -18,6 +18,7 @@ def db_clear():
     users_db.clear()
 
 #------------------------- 測試created --------------------------
+
 def test_create_user():
     response = client.post("/api/users/", json={
         "user_id": 1,

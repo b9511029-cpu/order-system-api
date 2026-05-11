@@ -2,7 +2,7 @@
 # .pytest 測試起來更直覺、清晰、第三方套件、進行參數化測試(方便簡單)
 import sqlite3
 from uuid import uuid4
-from API作品.app.meal_api_main import app, DB_PATH
+from API作品.app.meal import app, DB_PATH
 from fastapi.testclient import TestClient
 
 client = TestClient(app)

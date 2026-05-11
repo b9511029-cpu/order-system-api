@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
-from API作品.app.cart_api_main import DB_PATH, app, get_db
+from API作品.app.cart import DB_PATH, app, get_db
 
 #----------------------------------------
 # 建立測試用的連線，透過DB_PATH 連線到 Test.db
@@ -161,8 +161,8 @@ def test_delete_cart_item_not_found_should_fail():
     # 驗證 DB 購物車還存在 沒被誤刪
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM carts WHERE cart_id = ?",
-                       (cart_id,))
+        cursor.execute("SELECT COUNT(*) FROM carts WHERE user_id = ?",
+                       (user_id,))
         # 語意明確
         cart_count = cursor.fetchone()[0]
         assert cart_count == 1,"cart should still exist"

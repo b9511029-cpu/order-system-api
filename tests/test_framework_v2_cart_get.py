@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from uuid import uuid4
 from fastapi.testclient import TestClient
-from API作品.app.cart_api_main import app, get_db, DB_PATH
+from API作品.app.cart import app, get_db, DB_PATH
 
 #-----------------
 # 連線到 test.db
