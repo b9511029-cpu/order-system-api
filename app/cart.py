@@ -9,13 +9,19 @@ from zoneinfo import ZoneInfo
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 import sqlite3
+from starlette.middleware.cors import CORSMiddleware
+from API作品.db.database import DB_PATH,get_db_connection
+
 
 app = FastAPI()
 
-#-----------------
-# 模擬 db
-#-----------------
-cart_db = {} # user_id -> Cart
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:5500"], # 允許所有來源
+    allow_methods=["*"],      # 允許所有 HTTP 方法
+    allow_headers=["*"],      # 允許所有 headers
+)
+
 
 now = datetime.now()
 print("Reload",now)
@@ -66,73 +72,78 @@ class MessageResponse(BaseModel):  # 回傳通知訊息，delete response 204 no
     massage: str
 
 
-#---------------------
-# Set connect path
-#---------------------
-# 使用 pathlib 設定 db_path 絕對路徑
-BASE_DIR = Path(__file__).resolve().parent.parent # 找到這個檔案的根目錄
-DB_PATH = BASE_DIR /"db"/"test.db" # 將根目錄的路徑+資料庫的路徑 = 資料庫完整路徑(提供給資料庫連線使用)
-DB_PATH.parent.mkdir(parents=True, exist_ok=True) # 確保資料夾存在，如果不存在就幫你建立(自動補齊環境差異)
+# #---------------------
+# # Set connect path
+# #---------------------
+# # 使用 pathlib 設定 db_path 絕對路徑
+# BASE_DIR = Path(__file__).resolve().parent.parent # 找到這個檔案的根目錄
+# DB_PATH = BASE_DIR /"db"/"app.db" # 將根目錄的路徑+資料庫的路徑 = 資料庫完整路徑(提供給資料庫連線使用)
+# DB_PATH.parent.mkdir(parents=True, exist_ok=True) # 確保資料夾存在，如果不存在就幫你建立(自動補齊環境差異)
+#
+# #--------------------------------------
+# # 建立 sqlite3.connect and test conn
+# #--------------------------------------
+# conn = sqlite3.connect(DB_PATH)
+# conn.execute("PRAGMA foreign_keys=ON") # 將外鍵功能打開，OFF 只會刪除Cart 不會刪除item
+# cursor = conn.cursor()
+#
+# #-------------------------------------------
+# # 將 API 改成 支援 DI(dependency Injection)
+# # 目前API 使用的正式環境
+# #-------------------------------------------
 
-#--------------------------------------
-# 建立 sqlite3.connect and test conn
-#--------------------------------------
-conn = sqlite3.connect(DB_PATH)
-conn.execute("PRAGMA foreign_keys=ON") # 將外鍵功能打開，OFF 只會刪除Cart 不會刪除item
-cursor = conn.cursor()
-
-#-------------------------------------------
-# 將 API 改成 支援 DI(dependency Injection)
-# 目前API 使用的正式環境
-#-------------------------------------------
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    # conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     try:
         yield conn # yield 代表產量 ,產量前(提供DB)/產量後(自動清理)
     finally:
         conn.close()
-
-
-#------------------------
-# 建立 Carts TABLE
-#------------------------
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS carts (
-    id TEXT PRIMARY KEY,
-    user_id INTEGER UNIQUE,
-    updated_at TEXT NOT NULL 
-)
-""")
-#------------------------
-# 建立 CartItem TABLE
-#------------------------
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS cart_items (
-    id TEXT PRIMARY KEY,
-    cart_id TEXT NOT NULL,
-    menu_item_id TEXT NOT NULL,
-    quantity INTEGER,
-    added_at TEXT NOT NULL,
-    UNIQUE (cart_id, menu_item_id),
-    FOREIGN KEY (cart_id) REFERENCES carts (id) ON DELETE CASCADE
-)
-""")
-# CHECK(quantity > 0 AND quantity < 20) 防止任何繞過 API 的寫入造成資料污染
-conn.commit()
-conn.close()
+#
+#
+# #------------------------
+# # 建立 Carts TABLE
+# #------------------------
+# cursor.execute("""
+# CREATE TABLE IF NOT EXISTS carts (
+#     id TEXT PRIMARY KEY,
+#     user_id INTEGER UNIQUE,
+#     updated_at TEXT NOT NULL
+# )
+# """)
+# #------------------------
+# # 建立 CartItem TABLE
+# #------------------------
+# cursor.execute("""
+# CREATE TABLE IF NOT EXISTS cart_items (
+#     id TEXT PRIMARY KEY,
+#     cart_id TEXT NOT NULL,
+#     menu_item_id TEXT NOT NULL,
+#     quantity INTEGER,
+#     added_at TEXT NOT NULL,
+#     UNIQUE (cart_id, menu_item_id),
+#     FOREIGN KEY (cart_id) REFERENCES carts (id) ON DELETE CASCADE
+# )
+# """)
+# # CHECK(quantity > 0 AND quantity < 20) 防止任何繞過 API 的寫入造成資料污染
+# conn.commit()
+# conn.close()
 
 #----------------------------
 # SQLite + Add Cart
 #----------------------------
+
 @app.post("/api/v2/cart/{user_id}/items",status_code=201,response_model=CartResponse)
 def add_to_cart(user_id: int, data: AddCartItemRequest):
     # 建立時間
     now_taipei = datetime.now(timezone.utc).astimezone(ZoneInfo("Asia/Taipei")).isoformat()
 
     # 建立連線
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("PRAGMA foreign_keys=ON") # 打開外鍵功能
-    cursor = conn.cursor() # 呼叫 cursor
+    # conn = sqlite3.connect(DB_PATH)
+    # conn.execute("PRAGMA foreign_keys=ON")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
     # 查詢 cart 資料表 是否存在 使用者購物車編號
     cursor.execute("SELECT id FROM carts WHERE user_id = ?",(user_id,))
@@ -143,13 +154,12 @@ def add_to_cart(user_id: int, data: AddCartItemRequest):
     # cart not exist-> create cart
     if row is None:
         cart_id = str(uuid4())  # 建立 cart_id
-        cursor.execute("INSERT INTO carts(id, user_id, updated_at) VALUES(?,?,?)",
-                       (cart_id,user_id,now_taipei)
+        cursor.execute("INSERT INTO carts (id, user_id, updated_at) VALUES(?,?,?)",
+                       (cart_id,user_id,now_taipei) # API flow 測到這裡
                        )
     # cart exist -> Keep use
     else:
         cart_id = row[0]
-
 
     # 更改購物車商品數量，查詢購物車資料表欄位
     cursor.execute("""SELECT quantity FROM cart_items 
@@ -261,6 +271,7 @@ def get_cart(user_id: int,conn=Depends(get_db)):
 def patch_cart_items(user_id: int, menu_item_id: UUID, data: UpdateCartItemRequest,conn=Depends(get_db)):
     # 先查詢購物車
     cursor = conn.cursor()
+
     cursor.execute("SELECT id FROM carts WHERE user_id = ?",(user_id,))
 
     c_row = cursor.fetchone() # tuple (cart_id,)

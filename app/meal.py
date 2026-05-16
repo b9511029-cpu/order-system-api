@@ -10,6 +10,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 import sqlite3 # SQLite3 資料庫
+from API作品.db.database import get_db_connection
 
 
 app = FastAPI()
@@ -36,44 +37,48 @@ class MenuItemUpdate(BaseModel):
     description: str | None = None
     image_url: str | None = None
 
-#-------------------------------------------------------------
-# 設定檔案路徑 與 sqlite3 資料庫連線
-#-------------------------------------------------------------
-
-# 用 pathlib 設定該檔案的完整路徑路徑(現代python 路徑標準庫)
-BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = BASE_DIR /"db"/"menu.db"
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-
-# 建立 SQLite connect (開發測試)
-conn = sqlite3.connect(DB_PATH,check_same_thread=False)
-cursor = conn.cursor() # 查詢 menu.db 檔案
-# 建立資料表欄位
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS menu (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    price INTEGER NOT NULL,
-    description TEXT,
-    image_url TEXT
-)
-""")
-
-conn.commit() # 提交連線
-conn.close() # 完成請求後，關閉連線
+# #-------------------------------------------------------------
+# # 設定檔案路徑 與 sqlite3 資料庫連線
+# #-------------------------------------------------------------
+#
+# # 用 pathlib 設定該檔案的完整路徑路徑(現代python 路徑標準庫)
+# BASE_DIR = Path(__file__).resolve().parent.parent
+# DB_PATH = BASE_DIR /"db"/"app.db"
+# DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+#
+# # 建立 SQLite connect (開發測試)
+# conn = sqlite3.connect(DB_PATH,check_same_thread=False)
+# cursor = conn.cursor() # 查詢 menu.db 檔案
+# # 建立資料表欄位
+# cursor.execute("""
+# CREATE TABLE IF NOT EXISTS menu (
+#     id TEXT PRIMARY KEY,
+#     name TEXT NOT NULL,
+#     price INTEGER NOT NULL,
+#     description TEXT,
+#     image_url TEXT
+# )
+# """)
+#
+# conn.commit() # 提交連線
+# conn.close() # 完成請求後，關閉連線
 # ----------------------menu_db_Create--------------------------
+
+
 @app.post("/api/v1/menu/", response_model=MenuItem, status_code=201)
 def create_menu_item(item: MenuItem):
     # 建立連線、查詢 menu.db
-    conn = sqlite3.connect(DB_PATH,check_same_thread=False)
+    # conn = sqlite3.connect(DB_PATH,check_same_thread=False)
+
+    conn = get_db_connection()
     cursor = conn.cursor() # 查詢資料庫
 
     # 發聳post請求
-    cursor.execute("SELECT id FROM menu WHERE id = ?",(str(item.id),))
+    cursor.execute("SELECT id FROM menus WHERE id = ?",(str(item.id),))
     # SQLite參數只接受tuple/list的資料類型 (tuple,)用逗號判別，代表單個元素，[list],用[]判別
     if cursor.fetchone(): # 讀取一個值， 有值代表資料存在,沒有則為空值
         raise HTTPException(status_code=409,detail="ID already exists")
-    cursor.execute("INSERT INTO menu (id,name,price,description,image_url) VALUES (?,?,?,?,?)"
+    cursor.execute("INSERT INTO menus (id,name,price,description,image_url) VALUES (?,?,?,?,?)"
                    ,(
                        str(item.id),
                        item.name,
@@ -88,9 +93,11 @@ def create_menu_item(item: MenuItem):
 # ----------------------menu_db_Get all--------------------------
 @app.get("/api/v1/menu/",response_model=List[MenuItem])
 def get_menu_all():
-    conn = sqlite3.connect(DB_PATH)
+    # conn = sqlite3.connect(DB_PATH)
+
+    conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT id,name,price,description,image_url FROM menu")
+    cursor.execute("SELECT id,name,price,description,image_url FROM menus")
     rows = cursor.fetchall()
 
     cursor.close()
@@ -107,11 +114,13 @@ def get_menu_all():
 # ----------------------menu_db_single_Get --------------------------
 @app.get("/api/v1/menu/{item_id}", response_model=MenuItem, status_code=200)
 def get_single_menu_item(item_id: UUID):
-    conn = sqlite3.connect(DB_PATH)  # 資料接收到請求，找到 menu.db
+    # conn = sqlite3.connect(DB_PATH)  # 資料接收到請求，找到 menu.db
+
+    conn = get_db_connection()
     cursor = conn.cursor() # 告訴 中介者 我已經在資料庫找到你要的 menu.db
 
     cursor.execute( # cursor 執行確認資料是否存在
-        "SELECT id, name, price, description, image_url FROM menu WHERE id=?",
+        "SELECT id, name, price, description, image_url FROM menus WHERE id=?",
         (str(item_id),)
     )
 
@@ -140,11 +149,13 @@ def update_all_item(item_id: UUID, update_item: MenuItem):
                             detail="item_id 與 item.id 不匹配")
 
     # 連線 SQLite
-    conn = sqlite3.connect(DB_PATH)
+    # conn = sqlite3.connect(DB_PATH)
+
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     # 確認資料是否存在
-    cursor.execute("SELECT id FROM menu WHERE id=?", (str(item_id),))
+    cursor.execute("SELECT id FROM menus WHERE id=?", (str(item_id),))
     row = cursor.fetchone() # 取得並返回 資料
     if row is None:
         conn.close()
@@ -154,7 +165,7 @@ def update_all_item(item_id: UUID, update_item: MenuItem):
     cursor.execute(
         # 在sql語句中 描述欄位用逗號區隔，欄位與 WHERE id 用逗號區隔，會讓sql 解析成 WHERE id 也是欄位
         # sqlite3.OperationalError: near "WHERE": syntax error (image_url=?, WHERE id=?)
-        "UPDATE menu SET name=?, price=?, description=? ,image_url=? WHERE id=?",
+        "UPDATE menus SET name=?, price=?, description=? ,image_url=? WHERE id=?",
         (update_item.name,
                    update_item.price,
                    update_item.description,
@@ -172,12 +183,14 @@ def update_all_item(item_id: UUID, update_item: MenuItem):
 # -------------------------------PATCH 更新 API-------------------------------
 @app.patch("/api/v1/menu/{item_id}", response_model=MenuItem)
 def update_patch_item(item_id: UUID, item: MenuItemUpdate = ...):
-    conn = sqlite3.connect(DB_PATH)
+    # conn = sqlite3.connect(DB_PATH)
+
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row  # fetch 可像 dict 指定欄位
     cursor = conn.cursor()
 
     # 確認該 item 是否存在
-    cursor.execute("SELECT * FROM menu WHERE id = ?", (str(item_id),))
+    cursor.execute("SELECT * FROM menus WHERE id = ?", (str(item_id),))
     stored_item = cursor.fetchone()
     if not stored_item:
         conn.close()
@@ -196,12 +209,12 @@ def update_patch_item(item_id: UUID, item: MenuItemUpdate = ...):
     values = list(update_data.values()) # values ['牛肉麵', 120, '好吃的']
     values.append(str(item_id))  # WHERE id = ?
 
-    sql = f"UPDATE menu SET {set_clause} WHERE id = ?" # 將 sql 子句插入到sql 語法字串中
+    sql = f"UPDATE menus SET {set_clause} WHERE id = ?" # 將 sql 子句插入到sql 語法字串中
     cursor.execute(sql, values) # 組成(sql語法，更新參數值)->cursor 與 資料庫 構通更改資料
     conn.commit()
 
     # 取得更新後的資料
-    cursor.execute("SELECT * FROM menu WHERE id = ?", (str(item_id),))
+    cursor.execute("SELECT * FROM menus WHERE id = ?", (str(item_id),))
     updated_item = cursor.fetchone()
     conn.close()
 
@@ -211,18 +224,20 @@ def update_patch_item(item_id: UUID, item: MenuItemUpdate = ...):
 # -------------------刪除(delete)-------------------------
 @app.delete("/api/v1/menu/{item_id}", status_code=204)
 def delete_item(item_id: UUID):
-    conn = sqlite3.connect(DB_PATH)
+    # conn = sqlite3.connect(DB_PATH) 替換連線位置
+
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     # 確認該項目是否存在
-    cursor.execute("SELECT * FROM menu WHERE id = ?", (str(item_id),))
+    cursor.execute("SELECT * FROM menus WHERE id = ?", (str(item_id),))
     stored_item = cursor.fetchone()
     if not stored_item:
         conn.close()
         raise HTTPException(status_code=404, detail=f"Item not found")
 
     # 刪除項目
-    cursor.execute("DELETE FROM menu WHERE id = ?", (str(item_id),))
+    cursor.execute("DELETE FROM menus WHERE id = ?", (str(item_id),))
     conn.commit()
     conn.close()
 
