@@ -2,15 +2,13 @@
 # 購物車 API CRUD，包含 post(新增商品)、get(查詢清單所有商品)、delete(刪除商品)、patch(修改商品內容)
 # 設計 資料模型 購物車清單()
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import List
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
-import sqlite3
 from starlette.middleware.cors import CORSMiddleware
-from API作品.db.database import DB_PATH,get_db_connection
+from API作品.db.database import get_db_connection
 
 
 app = FastAPI()
@@ -36,7 +34,6 @@ class CartItem(BaseModel):
     quantity: int = Field(gt=0, le=20)
     added_at: datetime
 
-# 購物車主體，也就是顯示所有商品清單
 class Cart(BaseModel):
     id: UUID
     user_id: int = Field(gt=0)
@@ -58,39 +55,24 @@ class UpdateCartItemRequest(BaseModel):
 #--------------------------------------------------------------
 # Response Front User update Cart data Models (負責回應前端結果)
 #--------------------------------------------------------------
-class CartItemResponse(BaseModel): # 回應使用者,購物車商品資料
+class CartItemResponse(BaseModel):
     menu_item_id: UUID
     quantity: int
 
-class CartResponse(BaseModel):     # 回應購物車清單給使用者
+class CartResponse(BaseModel):
     user_id: int
     cart_id: UUID
     updated_at: str
     items: List[CartItemResponse]
 
-class MessageResponse(BaseModel):  # 回傳通知訊息，delete response 204 not content
+class MessageResponse(BaseModel):
     massage: str
 
 
-# #---------------------
-# # Set connect path
-# #---------------------
-# # 使用 pathlib 設定 db_path 絕對路徑
-# BASE_DIR = Path(__file__).resolve().parent.parent # 找到這個檔案的根目錄
-# DB_PATH = BASE_DIR /"db"/"app.db" # 將根目錄的路徑+資料庫的路徑 = 資料庫完整路徑(提供給資料庫連線使用)
-# DB_PATH.parent.mkdir(parents=True, exist_ok=True) # 確保資料夾存在，如果不存在就幫你建立(自動補齊環境差異)
-#
-# #--------------------------------------
-# # 建立 sqlite3.connect and test conn
-# #--------------------------------------
-# conn = sqlite3.connect(DB_PATH)
-# conn.execute("PRAGMA foreign_keys=ON") # 將外鍵功能打開，OFF 只會刪除Cart 不會刪除item
-# cursor = conn.cursor()
-#
-# #-------------------------------------------
-# # 將 API 改成 支援 DI(dependency Injection)
-# # 目前API 使用的正式環境
-# #-------------------------------------------
+#-------------------------------------------
+# 將 API 改成 支援 DI(dependency Injection)
+# 目前API 使用的正式環境
+#-------------------------------------------
 
 def get_db():
     # conn = sqlite3.connect(DB_PATH)
@@ -99,35 +81,6 @@ def get_db():
         yield conn # yield 代表產量 ,產量前(提供DB)/產量後(自動清理)
     finally:
         conn.close()
-#
-#
-# #------------------------
-# # 建立 Carts TABLE
-# #------------------------
-# cursor.execute("""
-# CREATE TABLE IF NOT EXISTS carts (
-#     id TEXT PRIMARY KEY,
-#     user_id INTEGER UNIQUE,
-#     updated_at TEXT NOT NULL
-# )
-# """)
-# #------------------------
-# # 建立 CartItem TABLE
-# #------------------------
-# cursor.execute("""
-# CREATE TABLE IF NOT EXISTS cart_items (
-#     id TEXT PRIMARY KEY,
-#     cart_id TEXT NOT NULL,
-#     menu_item_id TEXT NOT NULL,
-#     quantity INTEGER,
-#     added_at TEXT NOT NULL,
-#     UNIQUE (cart_id, menu_item_id),
-#     FOREIGN KEY (cart_id) REFERENCES carts (id) ON DELETE CASCADE
-# )
-# """)
-# # CHECK(quantity > 0 AND quantity < 20) 防止任何繞過 API 的寫入造成資料污染
-# conn.commit()
-# conn.close()
 
 #----------------------------
 # SQLite + Add Cart

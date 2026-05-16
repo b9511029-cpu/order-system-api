@@ -5,7 +5,6 @@
 # 測試 (post、get、update、patch、delete)
 # 使用者(登入) API Create # 用 post 設計,強調有執行操作行為,登入行為必須要 比對資料與驗證資料
 from datetime import datetime
-from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
@@ -44,46 +43,14 @@ class UserLogin(BaseModel):
     email: str = Field(min_length=5, max_length=254)
     password: str = Field(min_length=8, max_length=15)
 
-
-#---------------------
-# Set connect path
-#---------------------
-# 使用 pathlib 設定 db_path 絕對路徑
-# BASE_DIR = Path(__file__).resolve().parent.parent # 找到這個檔案的根目錄
-# DB_PATH = BASE_DIR /"db"/"app.db" # 將根目錄的路徑+資料庫的路徑 = 資料庫完整路徑(提供給資料庫連線使用)
-# DB_PATH.parent.mkdir(parents=True, exist_ok=True) # 確保資料夾存在，如果不存在就幫你建立(自動補齊環境差異)
-#
-#
-#
-# #----------------- 建立 SQLite 3 connect (Development and testing 開發測試) -----------------
-# import sqlite3 # sqlite 資料庫 全域變數
-# conn = sqlite3.connect(DB_PATH, check_same_thread=False) # 連線到指定 DB
-# cursor = conn.cursor() # cursor(游標) 用於操作資料庫行為 , 回傳時轉換成python 語言
-#
-# # 建立 users TABLE
-# cursor.execute("""
-# CREATE TABLE IF NOT EXISTS users (
-#                user_id INTEGER PRIMARY KEY,
-#                user_name TEXT NOT NULL,
-#                email TEXT NOT NULL,
-#                password TEXT NOT NULL,
-#                created_at TEXT NOT NULL
-# )
-# """)
-# conn.commit()
-# conn.close()
-
-
-
 # -----------------------
 # POST API: 新增使用者
 # -----------------------
 
 @app.post("/api/v1/users", status_code=201, response_model=UserItem)
 def created_user(item: UserItem):
-    # 直接連 SQLite
-    # conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn = get_db_connection()
+
+    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     # 檢查 user_id 是否存在
@@ -104,7 +71,7 @@ def created_user(item: UserItem):
     ))
 
     conn.commit()
-    conn.close()  # <- 在最後才關閉連線
+    conn.close()
 
     return item
 
@@ -114,12 +81,8 @@ def created_user(item: UserItem):
 
 @app.get("/api/v1/users", response_model=list[UserItem])
 def get_all_users():
-    # 直接開啟連線
-    # conn = sqlite3.connect(DB_PATH)
-    # conn.row_factory = sqlite3.Row
 
-    conn = get_db_connection()
-    # 沒設定 row_factory(預設只能用列表索引存取資料)，但是有設定可以透過工廠方法，改成sqlite3.row 物件(可用字典key取欄位的職)
+    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     cursor.execute("SELECT user_id, user_name, email, password, created_at FROM users")
@@ -144,11 +107,8 @@ def get_all_users():
 # -----------------------
 @app.get("/api/v1/users/{user_id}", response_model=UserItem)
 def get_single_user(user_id: int):
-    # 連線 SQLite
-    # conn = sqlite3.connect(DB_PATH)
-    # conn.row_factory = sqlite3.Row  # 這樣 row 可以用 key 取欄位
 
-    conn = get_db_connection()
+    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     # 單一查詢
@@ -178,10 +138,8 @@ def get_single_user(user_id: int):
 # -----------------------
 @app.patch("/api/v1/users/{user_id}", response_model=UserItem)
 def update_user(user_id: int, user: UserUpdate):
-    # conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    # conn.row_factory = sqlite3.Row
 
-    conn = get_db_connection()
+    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     # 查詢是否存在該使用者
@@ -222,8 +180,8 @@ def update_user(user_id: int, user: UserUpdate):
 # -----------------------
 @app.delete("/api/v1/users/{user_id}", status_code=204)
 def delete_user(user_id: int):
-    # conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn = get_db_connection()
+
+    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     # 先檢查使用者是否存在
@@ -244,10 +202,8 @@ def delete_user(user_id: int):
 # -----------------------------
 @app.post("/api/v1/login", status_code=200)
 def login(user: UserLogin):
-    # conn = sqlite3.connect(DB_PATH)
-    # conn.row_factory = sqlite3.Row
 
-    conn = get_db_connection()
+    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM users WHERE email = ?", (user.email,))
