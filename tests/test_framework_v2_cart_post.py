@@ -3,7 +3,8 @@ import sqlite3
 from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
-from API作品.app.cart import app, DB_PATH, get_db
+from API作品.app.cart import app,get_db
+from API作品.db.database import DB_PATH
 #----------------------------
 # Connect test.db
 #----------------------------
@@ -51,7 +52,7 @@ def db_clear():
     cursor = conn.cursor()
 
     cursor.execute("DELETE FROM cart_items")
-    cursor.execute("DELETE FROM carts")
+    # cursor.execute("DELETE FROM carts")
 
     conn.commit()
     conn.close()

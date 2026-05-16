@@ -3,7 +3,8 @@ import sqlite3
 from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
-from API作品.app.user import app, DB_PATH
+from API作品.app.user import app
+from API作品.db.database import DB_PATH
 
 # 測試 user api
 client = TestClient(app)
@@ -34,6 +35,7 @@ def test_create_user_should_succeed():
     }
     # Act (呼叫 API)
     response = client.post("/api/v1/users", json=payload)
+    print("response:", response)
     # Assert (驗證成功)
     assert response.status_code in (200,201)
     data = response.json()
