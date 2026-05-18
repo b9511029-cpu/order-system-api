@@ -181,7 +181,7 @@ API_project/
 │
 ├── test/
 │
-└── main.py
+└── main.py             # API 組裝器 意思是所有 API 啟動開關 ,把所有的API 掛載在一起
 
 #### 專案調整上的誤解
 app/
@@ -291,8 +291,74 @@ SQLite 引擎
 
 user/meal/cart API and 跌代重構 已測試完成
 
+-----------------------------------------------------------
+user/meal/cart = endpoint(終點)
+main.py = 把所有 API 拼起來的入口
 
+main.py => API 組裝器 (給uvicorn 伺服器啟動專案 uvicorn main:app --reload)
+   ↓
+include_router()
+   ↓
+app/user.py
+app/cart.py
+app/meal.py
 
+##### 未來API需要優化管理連線的部分: 目前 database.py 只有統一連線，但未統一關閉
+問題: 目前 API 連線status
+user.py → manual connection  # 要調整架構
+cart.py → Depends            # 不動       
+meal.py → manual connection  # 要調整架構
+
+Depends = 自動管理「開關 DB connection 的生命週期」
+| 寫法      | 問題                     |
+| ------- | ---------------------- |
+| 手動 conn | 你要自己負責 lifecycle       |
+| Depends | FastAPI 幫你管理 lifecycle |
+------------------------------------------------
+未來會將 連線管理 交由 Fast API 做自動管理 lifecycle 
+FastAPI 統一自動管理連線 標準寫法
+def get_db():
+    # conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
+    try:
+        yield conn # yield 代表產量 ,產量前(提供DB)/產量後(自動清理)
+    finally:
+        conn.close()
+
+解決: API connect DI (Dependency Injection) 一致性問題 與 職責分離
+1.將user and meal API 加入 get_db() ， 透過 FastAPI.depends 管理連線 與 每個 API routes 組合
+  重新跑測試程式通過
+# @app.post("/api/v1/users", status_code=201, response_model=UserItem)
+# def created_user(item: UserItem,conn=Depends(get_db)):
+2.將get_db() 抽離 API，放入 db.py 後 與 get_db_connection() 組合
+Flow:
+->request
+->FastAPI.depends(管理)
+->get_db(先自動連線/最後關閉) 
+->get_db_connect(sqlite3.connect)
+`
+`
+API_project/
+│
+├── app/
+│   ├── cart.py
+│   ├── meal.py
+│   ├── user.py
+│   └── dependencies.py   ← 新增 ok
+│
+├── db/
+│   ├── app.db
+│   ├── init_db.py
+│   └── database.py       ← get_db() ok
+│
+├── repositories/         ← 新增
+│   ├── cart_repository.py
+│   ├── user_repository.py
+│   └── meal_repository.py
+│
+├── test/
+│
+└── main.py
 
 
 

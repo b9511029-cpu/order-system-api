@@ -1,17 +1,13 @@
 # 李品緯(JasonLee)
-# 使用者(註冊) API CRUD (註冊API。需要註冊資料到資料庫)
-# 設計 資料模型 使用者(user_id,username,email,password,created_at)
-# 設計 (post、get、update、patch、delete)
-# 測試 (post、get、update、patch、delete)
-# 使用者(登入) API Create # 用 post 設計,強調有執行操作行為,登入行為必須要 比對資料與驗證資料
 from datetime import datetime
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
-from API作品.db.database import get_db_connection
+from API作品.db.database import get_db
 
 # ----------------------------------- 建立 user API ----------------------------------------
-app = FastAPI(title="UsersItem API")
+app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware, # type: ignore
     allow_origins=["http://127.0.0.1:5500"],
@@ -43,14 +39,14 @@ class UserLogin(BaseModel):
     email: str = Field(min_length=5, max_length=254)
     password: str = Field(min_length=8, max_length=15)
 
+
 # -----------------------
 # POST API: 新增使用者
 # -----------------------
 
 @app.post("/api/v1/users", status_code=201, response_model=UserItem)
-def created_user(item: UserItem):
+def created_user(item: UserItem,conn=Depends(get_db)):
 
-    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     # 檢查 user_id 是否存在
@@ -71,7 +67,6 @@ def created_user(item: UserItem):
     ))
 
     conn.commit()
-    conn.close()
 
     return item
 
@@ -80,9 +75,8 @@ def created_user(item: UserItem):
 # -----------------------
 
 @app.get("/api/v1/users", response_model=list[UserItem])
-def get_all_users():
+def get_all_users(conn=Depends(get_db)):
 
-    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     cursor.execute("SELECT user_id, user_name, email, password, created_at FROM users")
@@ -106,9 +100,8 @@ def get_all_users():
 # GET ONE API: 查詢單一使用者
 # -----------------------
 @app.get("/api/v1/users/{user_id}", response_model=UserItem)
-def get_single_user(user_id: int):
+def get_single_user(user_id: int,conn=Depends(get_db)):
 
-    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     # 單一查詢
@@ -117,7 +110,6 @@ def get_single_user(user_id: int):
         (user_id,)
     )
     row = cursor.fetchone()
-    conn.close()
 
     # 找不到使用者回 404
     if row is None:
@@ -137,16 +129,15 @@ def get_single_user(user_id: int):
 # PATCH API: 更新使用者(局部)
 # -----------------------
 @app.patch("/api/v1/users/{user_id}", response_model=UserItem)
-def update_user(user_id: int, user: UserUpdate):
+def update_user(user_id: int, user: UserUpdate,conn=Depends(get_db)):
 
-    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     # 查詢是否存在該使用者
     cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
     existing = cursor.fetchone()
+
     if not existing:
-        conn.close()
         raise HTTPException(status_code=404, detail="User not found")
 
     # 根據傳入資料更新欄位，沒有提供的就保留原值
@@ -164,7 +155,6 @@ def update_user(user_id: int, user: UserUpdate):
     # 取得更新後的資料
     cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
     updated = cursor.fetchone()
-    conn.close()
 
     user_item = UserItem(
         user_id=updated["user_id"],
@@ -179,21 +169,18 @@ def update_user(user_id: int, user: UserUpdate):
 # DELETE API: 刪除使用者
 # -----------------------
 @app.delete("/api/v1/users/{user_id}", status_code=204)
-def delete_user(user_id: int):
+def delete_user(user_id: int,conn=Depends(get_db)):
 
-    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     # 先檢查使用者是否存在
     cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
     if not cursor.fetchone():
-        conn.close()
         raise HTTPException(status_code=404, detail="user not found")
 
     # 刪除使用者
     cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
     conn.commit()
-    conn.close()
 
     return  # 204 表示成功但沒有回傳內容
 
@@ -201,9 +188,8 @@ def delete_user(user_id: int):
 # Use login API: 使用者登入
 # -----------------------------
 @app.post("/api/v1/login", status_code=200)
-def login(user: UserLogin):
+def login(user: UserLogin,conn=Depends(get_db)):
 
-    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM users WHERE email = ?", (user.email,))

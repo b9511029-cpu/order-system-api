@@ -1,6 +1,4 @@
 # 李品緯(JasonLee)
-# 購物車 API CRUD，包含 post(新增商品)、get(查詢清單所有商品)、delete(刪除商品)、patch(修改商品內容)
-# 設計 資料模型 購物車清單()
 from datetime import datetime, timezone
 from typing import List
 from uuid import UUID, uuid4
@@ -8,8 +6,7 @@ from zoneinfo import ZoneInfo
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
-from API作品.db.database import get_db_connection
-
+from API作品.db.database import get_db
 
 app = FastAPI()
 
@@ -24,9 +21,9 @@ app.add_middleware(
 now = datetime.now()
 print("Reload",now)
 
-#--------------------------------------------------------------------------
-# 購物車 Internal data Model (負責維護系統邏輯、統計商品、數量、計算最後購買總金額
-#--------------------------------------------------------------------------
+#---------------------------
+# 購物車 Internal data Model
+#---------------------------
 
 class CartItem(BaseModel):
     id: UUID
@@ -40,15 +37,15 @@ class Cart(BaseModel):
     items: List[CartItem] = Field(default_factory=list)
     updated_at: datetime
 
-#--------------------------------------------------------------
+#---------------------------------------------------
 # Apply Front User Request Models (負責新增、驗證資料)
-#--------------------------------------------------------------
+#---------------------------------------------------
 class AddCartItemRequest(BaseModel):
     menu_item_id: UUID
     quantity: int = Field(gt=0,le=20)
-#--------------------------------------------------------------
+#-------------------------------------
 # update(patch) Models (負責更改產品數量)
-#--------------------------------------------------------------
+#-------------------------------------
 class UpdateCartItemRequest(BaseModel):
     quantity: int | None = Field(default=None, ge=0)
 
@@ -69,33 +66,15 @@ class MessageResponse(BaseModel):
     massage: str
 
 
-#-------------------------------------------
-# 將 API 改成 支援 DI(dependency Injection)
-# 目前API 使用的正式環境
-#-------------------------------------------
-
-def get_db():
-    # conn = sqlite3.connect(DB_PATH)
-    conn = get_db_connection()
-    try:
-        yield conn # yield 代表產量 ,產量前(提供DB)/產量後(自動清理)
-    finally:
-        conn.close()
-
 #----------------------------
 # SQLite + Add Cart
 #----------------------------
 
 @app.post("/api/v2/cart/{user_id}/items",status_code=201,response_model=CartResponse)
-def add_to_cart(user_id: int, data: AddCartItemRequest):
+def add_to_cart(user_id: int, data: AddCartItemRequest,conn=Depends(get_db)):
     # 建立時間
     now_taipei = datetime.now(timezone.utc).astimezone(ZoneInfo("Asia/Taipei")).isoformat()
 
-    # 建立連線
-    # conn = sqlite3.connect(DB_PATH)
-    # conn.execute("PRAGMA foreign_keys=ON")
-
-    conn = get_db_connection()
     cursor = conn.cursor()
 
     # 查詢 cart 資料表 是否存在 使用者購物車編號
@@ -163,7 +142,6 @@ def add_to_cart(user_id: int, data: AddCartItemRequest):
 
     # 最後提交
     conn.commit()
-    conn.close()
 
     final_cart = (
         CartResponse(

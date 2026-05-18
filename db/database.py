@@ -29,4 +29,17 @@ def get_db_connection():
     return conn
 
 
+def get_db():
+    """ docstring
+    用途: 建立自動呼叫連線，最後自動關閉
+    目的: 透過 API Depends 管理，API 有需求會自動呼叫
+    """
+    conn = get_db_connection()
+    try:
+        yield conn
+
+    finally:
+        conn.close()
+
+
 

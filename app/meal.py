@@ -1,15 +1,10 @@
 # 李品緯(JasonLee)
-# 設計 餐點API CRUD
-# 設計 資料模型 餐點(編號,名稱,價格,介紹,圖片連結
-# 設計 fastapi(post、get、put、delete)
-# 測試 (post,get,put,delete)
 from typing import List
 from uuid import UUID
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
-from API作品.db.database import get_db_connection
-
+from API作品.db.database import get_db
 
 app = FastAPI()
 
@@ -35,10 +30,10 @@ class MenuItemUpdate(BaseModel):
     description: str | None = None
     image_url: str | None = None
 
-@app.post("/api/v1/menu/", response_model=MenuItem, status_code=201)
-def create_menu_item(item: MenuItem):
 
-    conn = get_db_connection() # database.py 代替連線
+@app.post("/api/v1/menu/", response_model=MenuItem, status_code=201)
+def create_menu_item(item: MenuItem,conn=Depends(get_db)):
+
     cursor = conn.cursor()
 
     # 發聳post請求
@@ -60,9 +55,8 @@ def create_menu_item(item: MenuItem):
 
 # ----------------------menu_db_Get all--------------------------
 @app.get("/api/v1/menu/",response_model=List[MenuItem])
-def get_menu_all():
+def get_menu_all(conn=Depends(get_db)):
 
-    conn = get_db_connection()  # database.py 代替連線
     cursor = conn.cursor()
 
     cursor.execute("SELECT id,name,price,description,image_url FROM menus")
@@ -82,9 +76,8 @@ def get_menu_all():
 
 # ----------------------menu_db_single_Get --------------------------
 @app.get("/api/v1/menu/{item_id}", response_model=MenuItem, status_code=200)
-def get_single_menu_item(item_id: UUID):
+def get_single_menu_item(item_id: UUID,conn=Depends(get_db)):
 
-    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     cursor.execute(
@@ -110,13 +103,12 @@ def get_single_menu_item(item_id: UUID):
 
 # ----------------------menu_db_put(整筆內容覆蓋) --------------------------
 @app.put("/api/v1/menu/{item_id}", status_code=200)
-def update_all_item(item_id: UUID, update_item: MenuItem):
+def update_all_item(item_id: UUID, update_item: MenuItem,conn=Depends(get_db)):
     # id 必須一致
     if item_id != update_item.id:
         raise HTTPException(status_code=400,
                             detail="item_id 與 item.id 不匹配")
 
-    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     # 確認資料是否存在
@@ -142,9 +134,8 @@ def update_all_item(item_id: UUID, update_item: MenuItem):
 
 # -------------------------------PATCH 更新 API-------------------------------
 @app.patch("/api/v1/menu/{item_id}", response_model=MenuItem)
-def update_patch_item(item_id: UUID, item: MenuItemUpdate = ...):
+def update_patch_item(item_id: UUID, item: MenuItemUpdate = ...,conn=Depends(get_db)):
 
-    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     # 確認該 item 是否存在
@@ -181,9 +172,8 @@ def update_patch_item(item_id: UUID, item: MenuItemUpdate = ...):
 
 # -------------------刪除(delete)-------------------------
 @app.delete("/api/v1/menu/{item_id}", status_code=204)
-def delete_item(item_id: UUID):
+def delete_item(item_id: UUID,conn=Depends(get_db)):
 
-    conn = get_db_connection() # database.py 代替連線
     cursor = conn.cursor()
 
     # 確認該項目是否存在
