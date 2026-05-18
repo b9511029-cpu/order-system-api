@@ -5,7 +5,9 @@ from datetime import datetime, timezone
 from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
-from API作品.app.cart import DB_PATH, app, get_db
+from API作品.app.cart import app, get_db
+from API作品.db.database import DB_PATH
+
 
 #----------------------------------------
 # 建立測試用的連線，透過DB_PATH 連線到 Test.db
