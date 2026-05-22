@@ -15,9 +15,9 @@ def clear_db():
     conn.commit()
     conn.close()
 
-# --------------------------------------------------------------
+# -----------------
 # Create Menu Test
-# --------------------------------------------------------------
+# -----------------
 
 def test_create_meal_should_succeed():
     clear_db()
@@ -31,7 +31,7 @@ def test_create_meal_should_succeed():
         'image_url': 'https://example.com/beef.jpg'
     }
     # When 加入餐點
-    response = client.post("/api/v1/menu/",json=payload)
+    response = client.post("/api/v1/menu",json=payload)
 
     # Then: 回傳成功
     assert response.status_code in (200,201)
@@ -41,9 +41,10 @@ def test_create_meal_should_succeed():
     assert data['price'] == 120
     assert data['description'] == '經典紅燒牛肉麵'
     assert data['image_url'] == 'https://example.com/beef.jpg'
-    print("測試通過:資料已建立的情境")
 
-# -------------------重複新增-------------------------
+#----------------
+# Duplicate test
+#----------------
 def test_create_meal_duplicate_should_fail():
     clear_db()
     # Given: 新增商品
@@ -56,20 +57,20 @@ def test_create_meal_duplicate_should_fail():
         'image_url': 'https://example.com/beef.jpg'
     }
     # When: 加入第一筆餐點
-    response1 = client.post("/api/v1/menu/",json=payload)
+    response1 = client.post("/api/v1/menu",json=payload)
     assert response1.status_code == 201
     # When: 加入第二筆餐點
-    response2 = client.post("/api/v1/menu/",json=payload)
+    response2 = client.post("/api/v1/menu",json=payload)
 
     # Then: 回傳驗證錯誤
     assert response2.status_code == 409
     data = response2.json()
     assert data['detail'] == "ID already exists"
-    print("測試通過:資料已存在的情境")
 
-# --------------------------------------------------------------
-# Read Menu Test
-# --------------------------------------------------------------
+
+#----------------
+# Get All Menu Test
+#----------------
 def test_get_all_meals_should_succeed():
     clear_db()
     # Given: 新增商品
@@ -82,16 +83,19 @@ def test_get_all_meals_should_succeed():
         'image_url': 'https://example.com/beef.jpg'
     }
     # When: 加入第一筆餐點
-    client.post("/api/v1/menu/",json=payload)
+    data = client.post("/api/v1/menu",json=payload)
     # When: 查詢結果
-    response = client.get("/api/v1/menu/")
+    response = client.get("/api/v1/menu")
     # Then: 回傳成功
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data,list)
     assert len(data) == 1
     assert data[0]['id'] == menu_id
-    print("測試通過:查詢全部資料的情境")
+
+#----------------
+# Get Menu Test
+#----------------
 
 def test_get_single_meal_should_success():
     clear_db()
@@ -117,11 +121,11 @@ def test_get_single_meal_should_success():
     assert data["price"] == 100
     assert data["description"] == "Beef burger"
     assert data["image_url"] is None
-    print("測試通過:查詢單一資料的情境")
 
-# --------------------------------------------------------------
+
+# -----------------------
 # Update Menu Test (PUT)
-# --------------------------------------------------------------
+# -----------------------
 def test_update_all_menu_item_should_succeed():
     clear_db()
     # Given: 新增商品
