@@ -1,12 +1,10 @@
 # 李品緯(JasonLee)
 # SQL 管理 (要找資料就叫我，記得告訴我要找誰的 user_id)
 
-print("execute UserRespository.py")
 class UserRepository:
     def __init__(self, db):
 
         self.db = db # 取得 connect 物件
-
 
     def create_user_data(self, items):
 
