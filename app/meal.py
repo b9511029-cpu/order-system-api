@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 from API作品.db.database import get_db
+from API作品.repositories.meal_repository import MealRepository
 
 app = FastAPI()
 
@@ -31,46 +32,52 @@ class MenuItemUpdate(BaseModel):
     image_url: str | None = None
 
 
-@app.post("/api/v1/menu/", response_model=MenuItem, status_code=201)
+@app.post("/api/v1/menu", response_model=MenuItem, status_code=201)
 def create_menu_item(item: MenuItem,conn=Depends(get_db)):
 
-    cursor = conn.cursor()
+    # cursor = conn.cursor()
+    # cursor.execute("SELECT id FROM menus WHERE id = ?",(str(item.id),))
+    meal_repo = MealRepository(conn)
 
-    # 發聳post請求
-    cursor.execute("SELECT id FROM menus WHERE id = ?",(str(item.id),))
-    # SQLite參數只接受tuple/list的資料類型 (tuple,)用逗號判別，代表單個元素，[list],用[]判別
-    if cursor.fetchone(): # 讀取一個值， 有值代表資料存在,沒有則為空值
+    meal_id = meal_repo.get_meal_id_by_id(item.id)
+
+    if meal_id:
         raise HTTPException(status_code=409,detail="ID already exists")
-    cursor.execute("INSERT INTO menus (id,name,price,description,image_url) VALUES (?,?,?,?,?)"
-                   ,(
-                       str(item.id),
-                       item.name,
-                       item.price,
-                       item.description,
-                       item.image_url
-                   ))
-    conn.commit()
-    conn.close()
+
+    # cursor.execute("INSERT INTO menus (id,name,price,description,image_url) VALUES (?,?,?,?,?)"
+    #                ,(
+    #                    str(item.id),
+    #                    item.name,
+    #                    item.price,
+    #                    item.description,
+    #                    item.image_url
+    #                ))
+    # conn.commit()
+    meal_repo.create_meal_data(item.id,
+                               item.name,
+                               item.price,
+                               item.description,
+                               item.image_url)
     return item
 
 # ----------------------menu_db_Get all--------------------------
-@app.get("/api/v1/menu/",response_model=List[MenuItem])
+@app.get("/api/v1/menu",response_model=List[MenuItem])
 def get_menu_all(conn=Depends(get_db)):
+    # cursor = conn.cursor()
+    # cursor.execute("SELECT id,name,price,description,image_url FROM menus")
+    # rows = cursor.fetchall()
+    meal_repo = MealRepository(conn)
 
-    cursor = conn.cursor()
+    meal_rows = meal_repo.get_all_meals()
 
-    cursor.execute("SELECT id,name,price,description,image_url FROM menus")
-    rows = cursor.fetchall()
-
-    cursor.close()
     menu_items = [
         MenuItem(
-            id = row[0],
-            name = row[1],
-            price = row[2],
-            description = row[3],
-            image_url = row[4]
-        )for row in rows
+            id = row["id"],
+            name = row["name"],
+            price = row["price"],
+            description = row["description"],
+            image_url = row["image_url"]
+        )for row in meal_rows
     ]
     return menu_items
 
@@ -78,25 +85,24 @@ def get_menu_all(conn=Depends(get_db)):
 @app.get("/api/v1/menu/{item_id}", response_model=MenuItem, status_code=200)
 def get_single_menu_item(item_id: UUID,conn=Depends(get_db)):
 
-    cursor = conn.cursor()
+    # cursor = conn.cursor()
+    # cursor.execute(
+    #     "SELECT id, name, price, description, image_url FROM menus WHERE id=?",
+    #     (str(item_id),)
+    # )
+    # row = cursor.fetchone()
+    meal_repo = MealRepository(conn)
+    meal_rows = meal_repo.get_meal_by_id(item_id)
 
-    cursor.execute(
-        "SELECT id, name, price, description, image_url FROM menus WHERE id=?",
-        (str(item_id),)
-    )
-
-    row = cursor.fetchone()
-    conn.close()
-
-    if row is None:
+    if meal_rows is None:
         raise HTTPException(status_code=404,detail=f"item not found, 編號:{item_id} 不存在")
 
-    item = MenuItem(               # response_model=MenuItem => response schema filtering
-        id = row[0],               # schema(模式),控制核心:控制回傳資料的結構與欄位
-        name = row[1],             # 當你回傳的是資料模型時，API 只會回傳資料結構與欄位，其他會過濾掉
-        price = row[2],            # 達到控制 API 輸出的模式，讓前端拿到你定義的欄位,隱藏敏感資料
-        description = row[3],
-        image_url = row[4]
+    item = MenuItem(
+        id = meal_rows["id"],
+        name = meal_rows["name"],
+        price = meal_rows["price"],
+        description = meal_rows["description"],
+        image_url = meal_rows["image_url"]
     )
     return item
 
@@ -115,7 +121,6 @@ def update_all_item(item_id: UUID, update_item: MenuItem,conn=Depends(get_db)):
     cursor.execute("SELECT id FROM menus WHERE id=?", (str(item_id),))
     row = cursor.fetchone() # 取得並返回 資料
     if row is None:
-        conn.close()
         raise HTTPException(status_code=404, detail="Item not found")
 
     # 更新資料
@@ -129,7 +134,6 @@ def update_all_item(item_id: UUID, update_item: MenuItem,conn=Depends(get_db)):
         ))
 
     conn.commit()
-    conn.close()
     return update_item
 
 # -------------------------------PATCH 更新 API-------------------------------
