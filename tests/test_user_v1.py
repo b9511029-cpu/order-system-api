@@ -33,9 +33,10 @@ def test_create_user_should_succeed():
         "password": "123456789",
         "created_at": datetime.now().isoformat()
     }
+
     # Act (呼叫 API)
     response = client.post("/api/v1/users", json=payload)
-    print("response:", response)
+
     # Assert (驗證成功)
     assert response.status_code in (200,201)
     data = response.json()

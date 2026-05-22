@@ -344,14 +344,14 @@ API_project/
 │   ├── cart.py
 │   ├── meal.py
 │   ├── user.py
-│   └── dependencies.py   ← 新增 ok
+│   └── dependencies.py   ← 新增  # FastAPI.depends 管理 API routes connect lifecycle(生命週期) 
 │
 ├── db/
 │   ├── app.db
 │   ├── init_db.py
-│   └── database.py       ← get_db() ok
+│   └── database.py       ← 新增 get_db_connect()建立sqlite3連線路徑與設定 and get_db() 與自動連線與關閉連線
 │
-├── repositories/         ← 新增
+├── repositories/         ← 新增 # 將SQL 拆分出來，避免以後程式越寫越大時 SQL 語法會比API 還要多，這樣會很亂，程式後面會炸掉，改 DB 很困難
 │   ├── cart_repository.py
 │   ├── user_repository.py
 │   └── meal_repository.py

@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 from API作品.db.database import get_db
+from API作品.repositories.user_respository import UserRepository
 
 # ----------------------------------- 建立 user API ----------------------------------------
 app = FastAPI()
@@ -47,27 +48,31 @@ class UserLogin(BaseModel):
 @app.post("/api/v1/users", status_code=201, response_model=UserItem)
 def created_user(item: UserItem,conn=Depends(get_db)):
 
-    cursor = conn.cursor()
+    # cursor = conn.cursor()
+    user_repo = UserRepository(item,conn) # 組合物件(連線，資料)
 
     # 檢查 user_id 是否存在
-    cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (item.user_id,))
-    if cursor.fetchone():
+    # cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (item.user_id,))
+    rows = user_repo.add_user()
+
+    # if cursor.fetchone():
+    if rows:
         raise HTTPException(status_code=409, detail="ID already exists")
 
+    item = user_repo.insert_user_data()
     # 新增資料
-    cursor.execute("""
-            INSERT INTO users (user_id, user_name, email, password, created_at)
-            VALUES (?, ?, ?, ?, ?)
-        """, (
-        item.user_id,
-        item.user_name,
-        item.email,
-        item.password,
-        item.created_at.isoformat()
-    ))
-
-    conn.commit()
-
+    # cursor.execute("""
+    #         INSERT INTO users (user_id, user_name, email, password, created_at)
+    #         VALUES (?, ?, ?, ?, ?)
+    #     """, (
+    #     item.user_id,
+    #     item.user_name,
+    #     item.email,
+    #     item.password,
+    #     item.created_at.isoformat()
+    # ))
+    #
+    # conn.commit()
     return item
 
 # -----------------------
@@ -77,11 +82,13 @@ def created_user(item: UserItem,conn=Depends(get_db)):
 @app.get("/api/v1/users", response_model=list[UserItem])
 def get_all_users(conn=Depends(get_db)):
 
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT user_id, user_name, email, password, created_at FROM users")
-    rows = cursor.fetchall()
-    conn.close()
+    # cursor = conn.cursor()
+    #
+    # cursor.execute("SELECT user_id, user_name, email, password, created_at FROM users")
+    # rows = cursor.fetchall()
+    # 完成 sqlite3 拆分
+    user_repo = UserRepository(conn)
+    rows = user_repo.get_all_users()
 
     # 轉換 created_at 並回傳
     users_items = [
@@ -102,16 +109,20 @@ def get_all_users(conn=Depends(get_db)):
 @app.get("/api/v1/users/{user_id}", response_model=UserItem)
 def get_single_user(user_id: int,conn=Depends(get_db)):
 
-    cursor = conn.cursor()
-
-    # 單一查詢
-    cursor.execute(
-        "SELECT user_id, user_name, email, password, created_at FROM users WHERE user_id = ?",
-        (user_id,)
-    )
-    row = cursor.fetchone()
+    # cursor = conn.cursor()
+    #
+    # # 單一查詢
+    # cursor.execute(
+    #     "SELECT user_id, user_name, email, password, created_at FROM users WHERE user_id = ?",
+    #     (user_id,)
+    # )
+    # row = cursor.fetchone()
 
     # 找不到使用者回 404
+
+    user_repo = UserRepository(conn)
+    row = user_repo.get_user_by_id(user_id)
+
     if row is None:
         raise HTTPException(status_code=404, detail="User not found")
 
