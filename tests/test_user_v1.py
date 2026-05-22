@@ -22,7 +22,7 @@ def clear_db():
 
 #-------------------------
 # creat
-# --------------------------
+#-------------------------
 
 def test_create_user_should_succeed():
     # Arrange (準備資料)
@@ -46,7 +46,10 @@ def test_create_user_should_succeed():
     assert data["password"] == "123456789"
     assert "created_at" in data
 
-#--------------------- 測試created duplicate ---------------------
+#----------------------
+# 測試created duplicate
+# ---------------------
+
 def test_create_user_duplicate_should_fail():
     # Arrange (準備資料)
     payload = {
@@ -64,7 +67,10 @@ def test_create_user_duplicate_should_fail():
     data = response2.json()
     assert 'detail' in data
 
-#------------------------ 測試get all users ------------------------
+#------------------------
+# 測試get all users
+# -----------------------
+
 def test_get_all_users_should_succeed():
     # Arrange (準備資料)
     payload = {
@@ -85,7 +91,10 @@ def test_get_all_users_should_succeed():
     assert len(data) == 1
     assert data[0]["user_id"] == 1
 
-#----------------------- 測試 get single users -----------------------
+#-----------------------
+# 測試 get single users
+# ----------------------
+
 def test_get_single_user_should_succeed():
     # Arrange (準備資料)
     payload = {
@@ -108,7 +117,10 @@ def test_get_single_user_should_succeed():
     assert data["email"] == "yyyyyy@gmail.com"
     assert data["password"] == "231678998"
 
-#------------------ 測試get single users not found ------------------
+#-------------------------------
+# 測試 get single user not found
+# ------------------------------
+
 def test_get_single_user_not_found_should_fail():
     # Arrange (準備資料)
     payload = {
@@ -130,7 +142,10 @@ def test_get_single_user_not_found_should_fail():
     assert 'detail' in data
 
 
-#---------------------- 測試 patch (update user item) ----------------------
+#------------------------------
+# 測試 patch (update user item)
+# -----------------------------
+
 def test_patch_user_item_should_succeed():
     # Arrange (準備資料)
     payload = {
@@ -174,7 +189,10 @@ def test_patch_user_not_found_should_fail():
     assert 'detail' in data
 
 
-#------------------------ 測試 delete (delete user) ------------------------
+#--------------------------
+# 測試 delete (delete user)
+# -------------------------
+
 def test_delete_user_should_succeed():
     # Arrange (準備資料)
     payload = {
@@ -214,7 +232,9 @@ def test_delete_user_not_found_should_fail():
     assert data["detail"] == "user not found"
 
 
-#------------------------ 測試 login (user login)  ------------------------
+#------------------------
+# 測試 login (user login)
+# -----------------------
 
 def test_user_login_should_succeed():
     # Given: Arrange (準備資料)
@@ -290,4 +310,5 @@ def test_user_login_password_err_should_fail():
     assert login_res.status_code == 401
     data = login_res.json()
     assert data["detail"] == "密碼錯誤"
+
 
