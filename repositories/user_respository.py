@@ -3,38 +3,24 @@
 
 print("execute UserRespository.py")
 class UserRepository:
-    def __init__(self, items, db):
+    def __init__(self, db):
 
         self.db = db # 取得 connect 物件
-        self.items = items
 
 
-    def add_user(self):
-
-        cursor = self.db.cursor()
-
-        cursor.execute("""
-        SELECT user_id, user_name, email, password, created_at FROM users
-        WHERE user_id = ? """, (self.items.user_id,))
-
-        return cursor.fetchone()
-
-
-    def insert_user_data(self):
+    def create_user_data(self, items):
 
         cursor = self.db.cursor()
         cursor.execute("""
         INSERT INTO users (user_id, user_name, email, password, created_at)
-        VALUES (?,?,?,?,?) """,(self.items.user_id,
-                                self.items.user_name,
-                                self.items.email,
-                                self.items.password,
-                                self.items.created_at))
+        VALUES (?,?,?,?,?) """,(items.user_id,
+                                items.user_name,
+                                items.email,
+                                items.password,
+                                items.created_at.isoformat()))
         self.db.commit()
 
-        return self.items
-
-
+        return items
 
     # 查詢所有使用者資料
     def get_all_users(self):
@@ -46,7 +32,7 @@ class UserRepository:
         return cursor.fetchall()
 
 
-    def get_user_by_id(self, user_id: int):
+    def get_user_by_id(self, user_id):
 
         cursor = self.db.cursor()
 
@@ -55,3 +41,35 @@ class UserRepository:
         WHERE user_id = ? """, (user_id,))
 
         return cursor.fetchone()
+
+    def update_user_by_id(self, new_name, new_email, new_password, user_id):
+
+        cursor = self.db.cursor()
+
+        cursor.execute("""
+        UPDATE users SET user_name = ?, email = ? , password = ?
+        WHERE user_id = ? """,(new_name,
+                               new_email,
+                               new_password,
+                               user_id))
+
+        return self.db.commit()
+
+    def delete_user_by_id(self, user_id):
+
+        cursor = self.db.cursor()
+
+        cursor.execute("DELETE FROM users WHERE user_id = ?"
+                       ,(user_id,))
+
+        return self.db.commit()
+
+    def get_user_by_email(self, email):
+
+        cursor = self.db.cursor()
+
+        cursor.execute("SELECT * FROM users WHERE email = ?",(email,))
+
+        return cursor.fetchone()
+
+
