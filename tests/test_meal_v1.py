@@ -157,7 +157,7 @@ def test_update_all_menu_item_should_succeed():
     assert data['price'] == 200
     assert data['description'] == '酸甜可口，香味四溢'
     assert data['image_url'] == 'https://example.com/beef.jpg'
-    print('測試成功:資料已更新(整筆覆蓋)')
+
 
 def test_update_menu_item_not_found_should_fail():
     # 當資料庫沒有資料，會先驗證資料庫，所以回應就會是404
@@ -178,7 +178,7 @@ def test_update_menu_item_not_found_should_fail():
     assert response.status_code ==404
     data = response.json()
     assert data['detail'] == "Item not found"
-    print('測試成功:更新失敗(PUT)')
+
 
 def test_update_menu_item_id_not_match_should_fail():
     clear_db()
@@ -246,7 +246,7 @@ def test_patch_menu_item_should_succeed():
     assert data['price'] == 300
     assert data['description'] == '經典紅燒牛肉麵'
     assert data['image_url'] == 'https://example.com/beef.jpg'
-    print('測試成功:建立PATCH情境')
+
 
 def test_patch_menu_item_not_found_source_should_fail():
     clear_db()
@@ -274,7 +274,7 @@ def test_patch_menu_item_not_found_source_should_fail():
     assert response.status_code == 404
     data = response.json()
     assert data['detail'] == "Item not found"
-    print('測試成功:資料不存在，無法修改局部資料情境')
+
 
 def test_patch_menu_item_request_not_found_should_fail():
     clear_db()
@@ -303,7 +303,7 @@ def test_patch_menu_item_request_not_found_should_fail():
     data2 = res.json()
     assert "detail" in data2
     assert data2["detail"] == "未提供更新欄位的資料"
-    print('測試成功:驗證未提供更新欄位情境')
+
 
 # --------------------------------------------------------------
 # Delete Menu Test
@@ -328,8 +328,6 @@ def test_delete_one_menu_item_should_succeed():
     # Then: 回傳空 byte 物件
     assert response.status_code == 204
     assert response.content == b""
-    print('測試成功:建立刪除資料情境')
-
 
 def test_delete_menu_item_not_found_should_fail():
     clear_db()
@@ -354,4 +352,4 @@ def test_delete_menu_item_not_found_should_fail():
     assert response.status_code == 404
     data = response.json()
     assert data['detail'] == "Item not found"
-    print('測試成功: 建立刪除情境，但資料不存在')
+
