@@ -41,3 +41,54 @@ class MealRepository():
 
         return cursor.fetchone()
 
+    def update_meal_all_data(self, name, price, description, image_url, item_id):
+
+        cursor = self.db.cursor()
+
+        cursor.execute("""
+        UPDATE menus SET name = ?, price = ?, description = ?, image_url = ?
+        WHERE id = ? """,(name, price, description, image_url, str(item_id)))
+
+        self.db.commit()
+
+
+        # 未測試過 patch API 還未改
+    def find_meal_by_id(self, m_id):
+
+        cursor = self.db.cursor()
+
+        cursor.execute("""SELECT * FROM menus WHERE id = ?""",(str(m_id),))
+
+        return cursor.fetchone()
+
+    def update_meal_fields(self, item_id, update_data):
+
+        cursor = self.db.cursor()
+
+        # 動態組 SQL
+        set_clause = ", ".join(
+            [f"{key} = ?"for key in update_data.keys()]
+        )
+
+        # 更新值
+        values = list(update_data.values())
+
+        values.append(str(item_id))
+
+        sql = f"UPDATE menus SET {set_clause} WHERE id = ?"
+
+        cursor.execute(sql, values)
+
+        self.db.commit()
+
+    def delete_meal_by_id(self, item_id):
+
+        cursor = self.db.cursor()
+
+        cursor.execute("DELETE FROM menus WHERE id = ?", (str(item_id),))
+
+        self.db.commit()
+
+
+
+
