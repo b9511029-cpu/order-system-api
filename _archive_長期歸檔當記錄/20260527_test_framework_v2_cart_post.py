@@ -323,6 +323,7 @@ def test_add_item_with_invalid_uuid_should_fail():
     # 回傳驗證錯誤
     assert res.status_code == 422
     data = res.json()
+    print(data)
     assert "detail" in data
     assert "uuid" in data["detail"][0]["type"]
 

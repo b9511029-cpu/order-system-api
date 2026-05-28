@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 from API作品.db.database import get_db
-from API作品.repositories.user_respository import UserRepository
+from API作品.repositories.user_repository import UserRepository
 
 # ----------------------------------- 建立 user API ----------------------------------------
 app = FastAPI()

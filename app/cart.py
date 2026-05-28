@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 from API作品.db.database import get_db
+from API作品.repositories.cart_repository import CartRepository
 
 app = FastAPI()
 
@@ -17,9 +18,8 @@ app.add_middleware(
     allow_headers=["*"],      # 允許所有 headers
 )
 
-
 now = datetime.now()
-print("Reload",now)
+print("Reload",now.isoformat())
 
 #---------------------------
 # 購物車 Internal data Model
@@ -75,33 +75,37 @@ def add_to_cart(user_id: int, data: AddCartItemRequest,conn=Depends(get_db)):
     # 建立時間
     now_taipei = datetime.now(timezone.utc).astimezone(ZoneInfo("Asia/Taipei")).isoformat()
 
-    cursor = conn.cursor()
+    # cursor = conn.cursor()
+    # cursor.execute("SELECT id FROM carts WHERE user_id = ?",(user_id,))
+    # row = cursor.fetchone()
+    cart_repo = CartRepository(conn)
+    cart_row = cart_repo.get_cart_by_user_id(user_id=user_id)
+    print("cart_row",cart_row)
+    if cart_row is None:
 
-    # 查詢 cart 資料表 是否存在 使用者購物車編號
-    cursor.execute("SELECT id FROM carts WHERE user_id = ?",(user_id,))
+        # cart_id = str(uuid4())
+        # cursor.execute("INSERT INTO carts (id, user_id, updated_at) VALUES(?,?,?)",
+        #                (cart_id,user_id,now_taipei)
+        #                )
 
-    # 先確認 carts TABLE 是否存在使用者.cart_id
-    row = cursor.fetchone()
-
-    # cart not exist-> create cart
-    if row is None:
-        cart_id = str(uuid4())  # 建立 cart_id
-        cursor.execute("INSERT INTO carts (id, user_id, updated_at) VALUES(?,?,?)",
-                       (cart_id,user_id,now_taipei) # API flow 測到這裡
-                       )
     # cart exist -> Keep use
+        cart_repo.create_a_new_cart(user_id=user_id,now_time=now_taipei)
+
     else:
-        cart_id = row[0]
+        originally_cid = cart_row[0]
 
     # 更改購物車商品數量，查詢購物車資料表欄位
-    cursor.execute("""SELECT quantity FROM cart_items 
-                          WHERE cart_id = ? AND menu_item_id = ? """,
-                    (cart_id, str(data.menu_item_id))
-    )
-    # pick DB quantity value
-    existing_quantity = cursor.fetchone() # 已存在tuple
+    # cursor.execute("""SELECT quantity FROM cart_items
+    #                       WHERE cart_id = ? AND menu_item_id = ? """,
+    #                 (cart_id, str(data.menu_item_id))
+    # )
+    # # pick DB quantity value
+    # existing_quantity = cursor.fetchone()
+
 
     # 確認 quantity 不是空值
+    existing_quantity = cart_repo.check_cart_item_quantity(cart_id=originally_cid, data=data.menu_item_id)
+
     if existing_quantity is not None:
         current_quantity = existing_quantity[0] # 取得tuple 中的數值
 
@@ -110,43 +114,56 @@ def add_to_cart(user_id: int, data: AddCartItemRequest,conn=Depends(get_db)):
             raise HTTPException(status_code=400,detail="Total quantity cannot exceed 20")
 
         # 當累加結果<20，沒有執行raise 會自然執行 更改數量
-        cursor.execute("""UPDATE cart_items SET quantity = quantity + ?
-                              WHERE cart_id = ? AND menu_item_id = ? """,
-                       (data.quantity, cart_id, str(data.menu_item_id))
-                        )
+        # cursor.execute("""UPDATE cart_items SET quantity = quantity + ?
+        #                       WHERE cart_id = ? AND menu_item_id = ? """,
+        #                (data.quantity, cart_id, str(data.menu_item_id))
+        #                 )
+        cart_repo.update_cart_item_quantity(cart_id=originally_cid, request=data)
+
+
     # 無數量欄位，代表要加入新的商品
     else:
-        cursor.execute("""
-                            INSERT INTO cart_items (id, cart_id, menu_item_id, quantity, added_at)
-                            VALUES (? ,? ,? ,?,? ) """,
-                       (
-                            str(uuid4()),
-                            cart_id,
-                            str(data.menu_item_id),
-                            data.quantity,
-                            now_taipei
-                       )
-        )
+        # cursor.execute("""
+        #                     INSERT INTO cart_items (id, cart_id, menu_item_id, quantity, added_at)
+        #                     VALUES (? ,? ,? ,?,? ) """,
+        #                (
+        #                     str(uuid4()),
+        #                     originally_cid,
+        #                     str(data.menu_item_id),
+        #                     data.quantity,
+        #                     now_taipei
+        #                )
+        # )
 
     # 建立購物車最後更新時間
-    cursor.execute("UPDATE carts SET updated_at = ? WHERE id = ? ",
-                   (now_taipei, cart_id))
+        ci_id = uuid4()
+        cart_repo.add_new_cart_item_to_cart(ci_id=ci_id,
+                                            orig_cid=originally_cid,
+                                            req_menu_id=data.menu_item_id,
+                                            req_quantity=data.quantity,
+                                            now_time=now_taipei)
+
+
+
+    # cursor.execute("UPDATE carts SET updated_at = ? WHERE id = ? ",
+    #                (now_taipei, originally_cid))
 
     # 查出最新 items
-    cursor.execute("""SELECT menu_item_id,quantity FROM cart_items 
-                          WHERE cart_id = ? """,
-                   (cart_id,)
-    )
+    cart_repo.add_the_cart_updated_at_time(now_time=now_taipei,
+                                           orig_cid=originally_cid)
 
-    items = cursor.fetchall()
+    # cursor.execute("""SELECT menu_item_id,quantity FROM cart_items
+    #                       WHERE cart_id = ? """,
+    #                (originally_cid,)
+    # )
+    #items = cursor.fetchall()
+    items = cart_repo.get_cart_items_by_cart_id(c_id=originally_cid)
 
-    # 最後提交
-    conn.commit()
 
     final_cart = (
         CartResponse(
             user_id = user_id,
-            cart_id = cart_id,
+            cart_id = originally_cid,
             updated_at= now_taipei,
             items =[CartItemResponse(menu_item_id=i[0],quantity=i[1])
                                     for i in items]
@@ -160,23 +177,25 @@ def add_to_cart(user_id: int, data: AddCartItemRequest,conn=Depends(get_db)):
 @app.get("/api/v2/cart/{user_id}",response_model=CartResponse)
 def get_cart(user_id: int,conn=Depends(get_db)):
 
-    cursor = conn.cursor()
+    # cursor = conn.cursor()
+    # cursor.execute("SELECT id, updated_at FROM carts WHERE user_id = ?"
+    #                ,(user_id,))
+    # c_row = cursor.fetchone()
+    cart_repo = CartRepository(conn)
 
-    cursor.execute("SELECT id, updated_at FROM carts WHERE user_id = ?"
-                   ,(user_id,))
+    cart_rows = cart_repo.get_cart_by_user_id(user_id)
 
-    c_row = cursor.fetchone()
-
-    if c_row is None:
+    if cart_rows is None:
         raise HTTPException(status_code=404, detail="cart not found")
 
-    # Supply cart_id
-    cart_id , updated_at = c_row # tuple unpacking (解構/結構對應)
+    # Supply (cart_id, updated_at)
+    cart_id , updated_at = cart_rows # tuple unpacking (解構/結構對應)
 
-    cursor.execute("SELECT menu_item_id, quantity FROM cart_items WHERE cart_id = ?"
-                   ,(cart_id,))
-
-    ci_rows = cursor.fetchall()
+    # cursor.execute("SELECT menu_item_id, quantity FROM cart_items WHERE cart_id = ?"
+    #                ,(cart_id,))
+    #
+    # ci_rows = cursor.fetchall()
+    cart_item_rows = cart_repo.get_cart_items_by_cart_id(c_id=cart_id)
 
     cart_response = CartResponse(
         user_id = user_id,
@@ -187,9 +206,8 @@ def get_cart(user_id: int,conn=Depends(get_db)):
                 menu_item_id = menu_item_id,
                 quantity = quantity
             )
-            for menu_item_id,quantity in ci_rows # 這裡改成 unpacking(結構對應/解構)
+            for menu_item_id, quantity in cart_item_rows # tuple unpacking (解構/結構對應)
         ]
-
     )
     return cart_response
 
