@@ -1,8 +1,6 @@
 # 李品緯(JasonLee)
 from uuid import uuid4
 
-
-
 class CartRepository:
     def __init__(self, db):
 
@@ -18,22 +16,24 @@ class CartRepository:
 
         self.db.commit()
 
-    def check_cart_item_quantity(self, cart_id, data):
+        return cart_id
+
+    def check_cart_item_quantity(self, cart_id, meal_id):
 
         cursor = self.db.cursor()
 
         cursor.execute(""" SELECT quantity FROM cart_items WHERE cart_id = ? 
-                           AND menu_item_id = ? """, (cart_id, str(data)))
+                           AND menu_item_id = ? """, (cart_id, str(meal_id)))
 
         return cursor.fetchone()
 
-    def update_cart_item_quantity(self, cart_id, request):
+    def cart_item_accumulation_quantity(self, quantity, cart_id, meal_id):
 
         cursor = self.db.cursor()
 
         cursor.execute(""" UPDATE cart_items SET quantity = quantity + ? 
                            WHERE cart_id = ? AND menu_item_id = ? """
-                       , (request.quantity, cart_id, str(request.menu_item_id)))
+                       , (quantity, cart_id, str(meal_id)))
 
         self.db.commit()
 
@@ -57,7 +57,15 @@ class CartRepository:
         self.db.commit()
 
 
-    def get_cart_by_user_id(self, user_id):
+    def get_the_cart_id_by_user_id(self, user_id):
+
+        cursor = self.db.cursor()
+
+        cursor.execute("SELECT id FROM carts WHERE user_id = ?",(user_id,))
+
+        return cursor.fetchone()
+
+    def get_cart_rows_by_user_id(self, user_id):
 
         cursor = self.db.cursor()
 
@@ -66,7 +74,7 @@ class CartRepository:
 
         return cursor.fetchone()
 
-    def get_cart_items_by_cart_id(self, c_id):
+    def get_now_cart_items_by_cart_id(self, c_id):
 
         cursor = self.db.cursor()
 
@@ -75,3 +83,33 @@ class CartRepository:
 
         return cursor.fetchall()
 
+    def delete_cart_items_by_cart_id_and_menu_item_id(self, cart_id, meal_id):
+
+        cursor = self.db.cursor()
+
+        cursor.execute(""" 
+        DELETE FROM cart_items WHERE cart_id = ? AND menu_item_id = ? 
+        """, (cart_id, str(meal_id))
+        )
+        self.db.commit()
+
+    def update_cart_item_quantity(self, qty, c_id, m_i_id):
+
+        cursor = self.db.cursor()
+
+        cursor.execute(""" UPDATE cart_items SET quantity = ? 
+                           WHERE cart_id = ? AND menu_item_id = ? """
+                       , (qty, c_id, str(m_i_id)))
+
+        self.db.commit()
+
+    def get_menu_item_id_and_quantity_by_cid_and_mid(self, cart_id, meal_id):
+
+        cursor = self.db.cursor()
+
+        cursor.execute(""" SELECT menu_item_id, quantity FROM cart_items 
+                            WHERE cart_id = ? AND menu_item_id = ? """
+                       , (cart_id, str(meal_id))
+                       )
+
+        return cursor.fetchall()

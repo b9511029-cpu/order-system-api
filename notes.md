@@ -360,21 +360,81 @@ API_project/
 │
 └── main.py
 
+#### 發現 cart_row[0]取值不直覺,connect 有設定 sqlite3.Row 改成 字典取值，發現 Row 未開啟 ?  
+#### 當初database.py get_db_connect()連線部分 有設定sqlite3.Row 就是為了 fetchone/all 時能開放 dict/tuple 兩種取值方式
+
+@app.post("/api/v2/cart/{user_id}/items",status_code=201,response_model=CartResponse)
+def add_to_cart(user_id: int, data: AddCartItemRequest,conn=Depends(get_db)):
+
+    # 建立時間
+    now_taipei = datetime.now(timezone.utc).astimezone(ZoneInfo("Asia/Taipei")).isoformat()
+    
+    cart_repo = CartRepository(conn)
+
+    cart_row = cart_repo.get_cart_by_user_id(user_id=user_id)
+
+    if cart_row is None:
+
+        cart_repo.create_a_new_cart(user_id=user_id,now_time=now_taipei)
+
+    else:
+        originally_cid = cart_row[0] -> 可讀性優化
+        print('originally_cid',originally_cid)
+
+後來在 cart_repository.py debug ,查詢到 self.db = connect ,仍然是 class sqlite3,代表沒有啟動到 sqlite3.Row
+所以改成 cart_row['id'] , 輸出結果factory = None 取得只有 tuple 資料
+
+但是後來 debug cart_repository.py 確認 print() 輸出是有 sqlite3.Row
+所以轉想可能有其他檔案有設定 sqlite3.connnect 但是未開啟 sqlite.Row 導致
+後來想到 test.py 之前 test.db 用的 override_get_db 版本是沒有設定 sqlite3.Row
+
+# 測試檔案，改成正式的產品連線 database.py -> get_db_connect() 
+# 原因:連線統一管理, 設定外鍵(開啟)/sqlite3.Row[tuple/dict(兩種格是通用)]
+def override_get_db():
+    conn = sqlite3.connect(DB_PATH) # test.db 版本 ,未開啟 sqlite3.Row
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+解決辦法: 將統一連線部分，database.py -> get_db_connection()
+        載入 test.py 改成統一使用一條 sqlite3.connect
+# 修改後的版本
+def override_get_db():
+    conn = get_db_connection()
+
+    使用database.py.get_db_connect()，就是為了統一管理連線部分，這樣可以減少重覆與遺忘
 
 
 
+# err_massage : UnboundLocalError: cannot access local variable 'originally_cid'
+# 意思就是: 'originally_cid' 這個區域變數無法被存取(access)
+@app.post("/api/v2/cart/{user_id}/items",status_code=201,response_model=CartResponse)
+def add_to_cart(user_id: int, data: AddCartItemRequest,conn=Depends(get_db)):
 
+    cart_repo = CartRepository(conn)
 
+    cart_row = cart_repo.get_cart_rows_by_user_id(user_id=user_id)
 
+    if cart_row is None:
 
+        cart_id = cart_repo.create_a_new_cart(user_id=user_id,now_time=now_taipei)
+        
+        is_new_cart = True
+    else:
+        originally_cid = cart_row['id']
 
+        is_new_cart = False
 
+    # 確認 quantity 不是空值
+    existing_quantity = cart_repo.check_cart_item_quantity(cart_id=originally_cid, meal_id=data.menu_item_id)
 
-
-
-
-
-
+# 資料流設計問題 originally_cid
+因 if cart_row is None 會造成 資料有/無值的不穩定疑慮，所以會讓測試程式發生潛在性的，當資料不存在的時候程式會抱錯
+# 當遇到這種狀況時可以使用 flag(標記) 
+是「開關」,會影響程式行為的布林變數,程式內部的狀態開關
+is_new_cart = True,意思: 用來標記 判斷物件是不是剛剛建立的
+is_new_cart = False,意思: 用來標記 判斷物件本來就有 cart（繼續沿用）
 
 
 
