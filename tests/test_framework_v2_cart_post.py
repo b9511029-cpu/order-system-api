@@ -4,12 +4,15 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 from API作品.app.cart import app,get_db
-from API作品.db.database import DB_PATH
+from API作品.db.database import DB_PATH, get_db_connection
+
+
 #----------------------------
 # Connect test.db
 #----------------------------
 def override_get_db():
-    conn = sqlite3.connect(DB_PATH)
+    # conn = sqlite3.connect(DB_PATH)　,不使用手寫 conn.row_factory，是因為怕會散落在各處
+    conn = get_db_connection() # 使用database.py.get_db_connect()，就是為了統一管理連線部分，這樣可以減少重覆與遺忘
     try:
         yield conn
     finally:

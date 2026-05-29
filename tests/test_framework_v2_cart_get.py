@@ -2,19 +2,19 @@
 import sqlite3
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-
 import pytest
 from uuid import uuid4
 from fastapi.testclient import TestClient
 from API作品.app.cart import app, get_db
-from API作品.db.database import DB_PATH
+from API作品.db.database import DB_PATH, get_db_connection
 
 
 #-----------------
 # 連線到 test.db
 #-----------------
 def override_get_db():
-    conn = sqlite3.connect(DB_PATH)
+    # conn = sqlite3.connect(DB_PATH) 當初設計沒有 sqlite3 沒有設計到 sqlite3.Row, 測試影響到　API　無法轉換　字典取值
+    conn = get_db_connection()
     try:
         yield conn
     finally:

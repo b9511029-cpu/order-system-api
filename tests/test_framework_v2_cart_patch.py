@@ -6,14 +6,15 @@ from zoneinfo import ZoneInfo
 import pytest
 from fastapi.testclient import TestClient
 from API作品.app.cart import app, get_db
-from API作品.db.database import DB_PATH
+from API作品.db.database import DB_PATH, get_db_connection
 
 
 #----------------------------------------
 # 建立測試用的連線，透過DB_PATH 連線到 Test.db
 #----------------------------------------
 def override_get_db():
-    conn = sqlite3.connect(DB_PATH)
+    # conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     try:
         yield conn
     finally:
