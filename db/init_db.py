@@ -2,6 +2,7 @@
 import sqlite3
 
 conn = sqlite3.connect("app.db")
+
 conn.execute("PRAGMA foreign_keys = ON") # 設計外鍵ON，是為了保護資料完整性
 
 cursor = conn.cursor()
