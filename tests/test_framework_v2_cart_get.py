@@ -66,7 +66,6 @@ def clean_db():
 # 將正式用的db 更換成測試用db
 app.dependency_overrides[get_db] = override_get_db
 
-
 # --------------
 # 呼叫API
 # --------------
