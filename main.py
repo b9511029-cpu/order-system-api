@@ -1,7 +1,7 @@
 # 李品緯(JasonLee)
 # modular API architecture（模組化架構）
 from fastapi import FastAPI
-from app.api import api_router
+from routes.api import api_router
 from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 

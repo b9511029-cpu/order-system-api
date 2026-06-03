@@ -2,7 +2,7 @@
 from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
-from API作品.app.user import router
+from API作品.routes.user import router
 
 # 測試 user api
 client = TestClient(router)

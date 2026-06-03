@@ -3,7 +3,7 @@
 # 未來加入API,不用動 main.py
 # 可以做 versioning(v1/v2)
 from fastapi import APIRouter
-from app import user,meal,cart
+from routes import user,meal,cart
 
 
 # 建立統一入口

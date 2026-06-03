@@ -2,8 +2,8 @@
 from uuid import uuid4, UUID
 import pytest
 from fastapi.testclient import TestClient
-from API作品.app.meal import MenuItem
-from API作品.app.cart import router, cart_db, Cart, CartItem
+from API作品.routes.meal import MenuItem
+from API作品.routes.cart import router, cart_db, Cart, CartItem
 
 client = TestClient(router)
 
