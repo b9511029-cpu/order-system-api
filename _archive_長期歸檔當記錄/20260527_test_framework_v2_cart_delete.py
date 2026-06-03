@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
-from API作品.app.cart import app, get_db
+from API作品.app.cart import router, get_db
 from API作品.db.database import DB_PATH
 
 
@@ -96,13 +96,13 @@ def seed_cart_with_item():
 #--------------------------------------
 # FastAPI 正式環境DB 替換 測試用的 Test.db
 #--------------------------------------
-app.dependency_overrides[get_db] = override_get_db
+router.dependency_overrides[get_db] = override_get_db
 
 
 #-------------------------
 # Test FastAPI
 #-------------------------
-client = TestClient(app)
+client = TestClient(router)
 
 
 def test_delete_cart_item_should_succeed():

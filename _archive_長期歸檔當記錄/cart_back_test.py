@@ -4,9 +4,9 @@ from uuid import uuid4, UUID
 import pytest
 from fastapi.testclient import TestClient
 from API作品.app.meal import MenuItem
-from API作品.app.cart import app, cart_db, Cart, CartItem
+from API作品.app.cart import router, cart_db, Cart, CartItem
 
-client = TestClient(app)
+client = TestClient(router)
 
 # 先建立新增 menu API 邏輯
 
@@ -23,7 +23,7 @@ def db_clear():
 # # API flow 測試整體邏輯沒問題
 # Create (已升級完成) 透過API 建立餐點並加入購物車 (完整的整合測試)
 #--------------------------------------------------------------
-@app.post("/api/v1/menu.db/",status_code=201)
+@router.post("/api/v1/menu.db/", status_code=201)
 def create_menu(item: MenuItem):
     # 建立餐點邏輯
     return {"id": str(uuid4()),"name": item.name, "price": item.price}

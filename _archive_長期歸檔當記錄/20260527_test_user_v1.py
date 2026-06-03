@@ -3,11 +3,11 @@ import sqlite3
 from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
-from API作品.app.user import app
+from API作品.app.user import router
 from API作品.db.database import DB_PATH
 
 # 測試 user api
-client = TestClient(app)
+client = TestClient(router)
 
 # -----------------------------
 # auto db clear

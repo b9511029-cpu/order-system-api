@@ -3,28 +3,18 @@ from datetime import datetime, timezone
 from typing import List
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import HTTPException, Depends, APIRouter
 from pydantic import BaseModel, Field
-from starlette.middleware.cors import CORSMiddleware
-from API作品.db.database import get_db
-from API作品.repositories.cart_repository import CartRepository
+from db.database import get_db
+from repositories.cart_repository import CartRepository
 
-app = FastAPI()
+router = APIRouter(prefix="/cart")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5500"], # 允許所有來源
-    allow_methods=["*"],      # 允許所有 HTTP 方法
-    allow_headers=["*"],      # 允許所有 headers
-)
-
-now = datetime.now()
-print("Reload",now.isoformat())
+print("cart 載入時間",datetime.now().isoformat())
 
 #---------------------------
 # 購物車 Internal data Model
 #---------------------------
-
 class CartItem(BaseModel):
     id: UUID
     menu_item_id: UUID
@@ -69,8 +59,7 @@ class MessageResponse(BaseModel):
 #----------------------------
 # SQLite + Add Cart
 #----------------------------
-
-@app.post("/api/v2/cart/{user_id}/items",status_code=201,response_model=CartResponse)
+@router.post("/{user_id}/items", status_code=201, response_model=CartResponse)
 def add_to_cart(user_id: int, data: AddCartItemRequest,conn=Depends(get_db)):
     # 建立時間
     now_taipei = datetime.now(timezone.utc).astimezone(ZoneInfo("Asia/Taipei")).isoformat()
@@ -96,7 +85,7 @@ def add_to_cart(user_id: int, data: AddCartItemRequest,conn=Depends(get_db)):
         current_quantity = existing_quantity['quantity'] # 取得 dict 對應的數值
 
         # ***加入累加後超過上限檢查 [Guard Clause（防衛式寫法）]
-        if current_quantity + data.quantity > 20: # 累加結果 > 20 會執行raise 中斷
+        if current_quantity + data.quantity > 20:
             raise HTTPException(status_code=400,detail="Total quantity cannot exceed 20")
 
         cart_repo.cart_item_accumulation_quantity(quantity=data.quantity, cart_id=cart_id, meal_id=data.menu_item_id)
@@ -133,7 +122,7 @@ def add_to_cart(user_id: int, data: AddCartItemRequest,conn=Depends(get_db)):
 #----------------------------
 # SQLite + Get Cart + 測試框架
 #----------------------------
-@app.get("/api/v2/cart/{user_id}",response_model=CartResponse)
+@router.get("/{user_id}", response_model=CartResponse)
 def get_cart(user_id: int,conn=Depends(get_db)):
 
     cart_repo = CartRepository(conn)
@@ -156,8 +145,7 @@ def get_cart(user_id: int,conn=Depends(get_db)):
             CartItemResponse(
                 menu_item_id = menu_item_id,
                 quantity = quantity
-            )
-            for menu_item_id, quantity in cart_item_rows # tuple unpacking (解構/結構對應)
+            )for menu_item_id, quantity in cart_item_rows # tuple unpacking (解構/結構對應)
         ]
     )
     return cart_response
@@ -167,7 +155,7 @@ def get_cart(user_id: int,conn=Depends(get_db)):
 # SQLite + Patch Cart
 # (購物車通常都是局部修改居多，真實場景很少使用的put(因此沒有設計))
 #-------------------------------------------------------
-@app.patch("/api/v2/cart/{user_id}/items/{menu_item_id}",response_model=CartResponse)
+@router.patch("/{user_id}/items/{menu_item_id}", response_model=CartResponse)
 def patch_cart_items(user_id: int, menu_item_id: UUID, data: UpdateCartItemRequest,conn=Depends(get_db)):
     # 先查詢購物車
     cart_repo = CartRepository(conn)
@@ -221,7 +209,7 @@ def patch_cart_items(user_id: int, menu_item_id: UUID, data: UpdateCartItemReque
 #----------------------------
 # SQLite + Delete Cart
 #----------------------------
-@app.delete("/api/v2/cart/{user_id}/items/{menu_item_id}",response_model=CartResponse)
+@router.delete("/{user_id}/items/{menu_item_id}", response_model=CartResponse)
 def delete_cart_item(user_id: int, menu_item_id: UUID,conn=Depends(get_db)):
 
     cart_repo = CartRepository(conn)

@@ -2,11 +2,11 @@
 # .pytest 測試起來更直覺、清晰、第三方套件、進行參數化測試(方便簡單)
 import sqlite3
 from uuid import uuid4
-from API作品.app.meal import app
+from API作品.app.meal import router
 from fastapi.testclient import TestClient
 from API作品.db.database import DB_PATH
 
-client = TestClient(app)
+client = TestClient(router)
 
 def clear_db():
     conn = sqlite3.connect(DB_PATH)

@@ -1,23 +1,15 @@
 # 李品緯(JasonLee)
 from datetime import datetime
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import HTTPException, Depends, APIRouter
 from pydantic import BaseModel, Field
-from starlette.middleware.cors import CORSMiddleware
-from API作品.db.database import get_db
-from API作品.repositories.user_repository import UserRepository
+from db.database import get_db
+from repositories.user_repository import UserRepository
 
 # ----------------------------------- 建立 user API ----------------------------------------
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware, # type: ignore
-    allow_origins=["http://127.0.0.1:5500"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+router = APIRouter(prefix="/users")
 
 #------ uvicorn Re-road time ------
-print('載入時間',datetime.now().isoformat())
+print('user 載入時間',datetime.now().isoformat())
 
 #----------------------------------- 註冊 使用者 資料模型 -----------------------------------
 
@@ -45,7 +37,7 @@ class UserLogin(BaseModel):
 # POST API: 新增使用者
 # -----------------------
 
-@app.post("/api/v1/users", status_code=201, response_model=UserItem)
+@router.post("/", status_code=201, response_model=UserItem)
 def created_user(items:UserItem,conn=Depends(get_db)):
 
     user_repo = UserRepository(conn)
@@ -63,7 +55,7 @@ def created_user(items:UserItem,conn=Depends(get_db)):
 # GET API: 查詢所有使用者
 # -----------------------
 
-@app.get("/api/v1/users", response_model=list[UserItem])
+@router.get("/", response_model=list[UserItem])
 def get_all_users(conn=Depends(get_db)):
 
     user_repo = UserRepository(conn)
@@ -86,7 +78,7 @@ def get_all_users(conn=Depends(get_db)):
 # -----------------------
 # GET ONE API: 查詢單一使用者
 # -----------------------
-@app.get("/api/v1/users/{user_id}", response_model=UserItem)
+@router.get("/{user_id}", response_model=UserItem)
 def get_single_user(user_id: int,conn=Depends(get_db)):
 
     user_repo = UserRepository(conn)
@@ -109,7 +101,7 @@ def get_single_user(user_id: int,conn=Depends(get_db)):
 # -----------------------
 # PATCH API: 更新使用者(局部)
 # -----------------------
-@app.patch("/api/v1/users/{user_id}", response_model=UserItem)
+@router.patch("/{user_id}", response_model=UserItem)
 def update_user(user_id: int, user: UserUpdate,conn=Depends(get_db)):
 
     user_repo = UserRepository(conn)
@@ -144,7 +136,7 @@ def update_user(user_id: int, user: UserUpdate,conn=Depends(get_db)):
 # -----------------------
 # DELETE API: 刪除使用者
 # -----------------------
-@app.delete("/api/v1/users/{user_id}", status_code=204)
+@router.delete("/{user_id}", status_code=204)
 def delete_user(user_id: int,conn=Depends(get_db)):
 
     user_repo = UserRepository(conn)
@@ -163,7 +155,7 @@ def delete_user(user_id: int,conn=Depends(get_db)):
 # -----------------------------
 # Use login API: 使用者登入
 # -----------------------------
-@app.post("/api/v1/login", status_code=200)
+@router.post("/login", status_code=200)
 def login(user: UserLogin,conn=Depends(get_db)):
 
     user_repo = UserRepository(conn)

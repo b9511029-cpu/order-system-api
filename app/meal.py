@@ -1,20 +1,15 @@
 # 李品緯(JasonLee)
+from datetime import datetime
 from typing import List
 from uuid import UUID
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import HTTPException, Depends, APIRouter
 from pydantic import BaseModel, Field
-from starlette.middleware.cors import CORSMiddleware
-from API作品.db.database import get_db
-from API作品.repositories.meal_repository import MealRepository
+from db.database import get_db
+from repositories.meal_repository import MealRepository
 
-app = FastAPI()
+router = APIRouter(prefix="/menu")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5500"], # 允許所有來源
-    allow_methods=["*"],      # 允許所有 HTTP 方法
-    allow_headers=["*"],      # 允許所有 headers
-)
+print(f"meal 載入時間:{datetime.now().isoformat()}")
 
 # 建立餐點模型
 class MenuItem(BaseModel):
@@ -32,7 +27,7 @@ class MenuItemUpdate(BaseModel):
     image_url: str | None = None
 
 
-@app.post("/api/v1/menu", response_model=MenuItem, status_code=201)
+@router.post("/", response_model=MenuItem, status_code=201)
 def create_menu_item(item: MenuItem,conn=Depends(get_db)):
 
     meal_repo = MealRepository(conn)
@@ -50,7 +45,7 @@ def create_menu_item(item: MenuItem,conn=Depends(get_db)):
     return item
 
 # ----------------------menu_db_Get all--------------------------
-@app.get("/api/v1/menu",response_model=List[MenuItem])
+@router.get("/", response_model=List[MenuItem])
 def get_menu_all(conn=Depends(get_db)):
 
     meal_repo = MealRepository(conn)
@@ -69,7 +64,7 @@ def get_menu_all(conn=Depends(get_db)):
     return menu_items
 
 # ----------------------menu_db_single_Get --------------------------
-@app.get("/api/v1/menu/{item_id}", response_model=MenuItem, status_code=200)
+@router.get("/{item_id}", response_model=MenuItem, status_code=200)
 def get_single_menu_item(item_id: UUID,conn=Depends(get_db)):
 
     meal_repo = MealRepository(conn)
@@ -90,7 +85,7 @@ def get_single_menu_item(item_id: UUID,conn=Depends(get_db)):
 
 
 # ----------------------menu_db_put(整筆內容覆蓋) --------------------------
-@app.put("/api/v1/menu/{item_id}", status_code=200)
+@router.put("/{item_id}", status_code=200)
 def update_all_item(item_id: UUID, update_item: MenuItem,conn=Depends(get_db)):
     # id 必須一致
     if item_id != update_item.id:
@@ -113,7 +108,7 @@ def update_all_item(item_id: UUID, update_item: MenuItem,conn=Depends(get_db)):
     return update_item
 
 # -------------------------------PATCH 更新 API-------------------------------
-@app.patch("/api/v1/menu/{item_id}", response_model=MenuItem)
+@router.patch("/{item_id}", response_model=MenuItem)
 def update_patch_item(item_id: UUID, item: MenuItemUpdate = ..., conn=Depends(get_db)):
 
     meal_repo = MealRepository(conn)
@@ -143,7 +138,7 @@ def update_patch_item(item_id: UUID, item: MenuItemUpdate = ..., conn=Depends(ge
     return MenuItem(**dict(updated_meal))
 
 # -------------------刪除(delete)-------------------------
-@app.delete("/api/v1/menu/{item_id}", status_code=204)
+@router.delete("/{item_id}", status_code=204)
 def delete_item(item_id: UUID,conn=Depends(get_db)):
 
     meal_repo = MealRepository(conn)

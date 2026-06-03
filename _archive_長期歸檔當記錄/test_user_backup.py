@@ -2,10 +2,10 @@
 from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
-from API作品.app.user import app
+from API作品.app.user import router
 
 # 測試 user api
-client = TestClient(app)
+client = TestClient(router)
 
 # ------------------------------------ 模擬 User database ---------------------------------
 users_db : dict ={}

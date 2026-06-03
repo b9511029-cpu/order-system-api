@@ -3,7 +3,7 @@ import sqlite3
 from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
-from API作品.app.cart import app, DB_PATH
+from API作品.app.cart import router, DB_PATH
 
 #--------------------------------------------------------------
 # SQLite DB clear
@@ -24,7 +24,7 @@ def db_clear():
 #-------------------------
 # FastAPI Test
 #-------------------------
-client = TestClient(app)
+client = TestClient(router)
 
 # SQLite + API test
 #--------------------------------------------------------------

@@ -3,7 +3,7 @@ import sqlite3
 from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
-from API作品.app.cart import app,get_db
+from API作品.app.cart import router,get_db
 from API作品.db.database import DB_PATH, get_db_connection
 
 
@@ -65,9 +65,9 @@ def db_clear():
 # 告訴 API 不要走正式環境 DB ,我有提供一個測試用DB給你測試
 # override_get_db -> DB PATH -> 替換過的 test.db
 #-------------------------------------------------
-app.dependency_overrides[get_db] = override_get_db
+router.dependency_overrides[get_db] = override_get_db
 
-client = TestClient(app)
+client = TestClient(router)
 
 # SQLite + API test
 #--------------------------------------------------------------
