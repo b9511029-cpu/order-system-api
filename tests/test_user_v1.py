@@ -5,8 +5,9 @@ import pytest
 from fastapi.testclient import TestClient
 # from API作品.app.user import router
 # from API作品.db.database import DB_PATH
-from API作品.routes.user import router
-from API作品.db.database import DB_PATH
+from routes.user import router
+from db.database import DB_PATH
+
 
 # 測試 user api
 client = TestClient(router)
