@@ -3,14 +3,36 @@ import sqlite3
 from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
-# from API作品.app.user import router
-# from API作品.db.database import DB_PATH
-from routes.user import router
 from db.database import DB_PATH
-
-
+from main import app # 載入 FastAPI
 # 測試 user api
-client = TestClient(router)
+# client = TestClient(router)
+
+"""
+使用 TestClient(router) 時，
+只會載入單一 APIRouter。
+
+不會經過 main.py 裡面的：
+
+app.include_router(api_router, prefix="/api/v1")
+
+因此測試路徑：
+
+/api/v1/users
+
+實際上不存在，造成 404。
+
+改成：
+
+client = TestClient(app)
+
+之後會載入完整 FastAPI 應用程式，
+所有 router 與 prefix 都會被正確註冊。
+"""
+
+client = TestClient(app)
+print('path',[r.path for r in client.app.routes])
+
 
 # -----------------------------
 # auto db clear
@@ -258,7 +280,7 @@ def test_user_login_should_succeed():
     }
 
     # When: Act (呼叫API)
-    login_res = client.post("/api/v1/login", json=payload)
+    login_res = client.post("/api/v1/users/login", json=payload)
 
     # Then: Assert (驗證成功)
     assert login_res.status_code == 200
@@ -282,7 +304,7 @@ def test_user_login_not_found_should_fail():
     }
 
     # When: Act (呼叫API)
-    login_res = client.post("/api/v1/login", json=payload)
+    login_res = client.post("/api/v1/users/login", json=payload)
 
     # Then: Assert (驗證成功)
     assert login_res.status_code == 404
@@ -307,7 +329,7 @@ def test_user_login_password_err_should_fail():
     }
 
     # When: Act (呼叫API)
-    login_res = client.post("/api/v1/login", json=payload)
+    login_res = client.post("/api/v1/users/login", json=payload)
 
     # Then: Assert (驗證成功)
     assert login_res.status_code == 401

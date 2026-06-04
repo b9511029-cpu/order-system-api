@@ -5,7 +5,7 @@ from uuid import uuid4
 from zoneinfo import ZoneInfo
 import pytest
 from fastapi.testclient import TestClient
-from API作品.routes.cart import router, get_db
+from API作品.routes.cart import app, get_db
 from API作品.db.database import DB_PATH
 
 
@@ -97,12 +97,12 @@ def seed_cart_with_item():
 #--------------------------------------
 # FastAPI 正式環境DB 替換 測試用的 Test.db
 #--------------------------------------
-router.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[get_db] = override_get_db
 
 #-------------------------
 # Test FastAPI
 #-------------------------
-client = TestClient(router)
+client = TestClient(app)
 
 
 # SQLite + API test

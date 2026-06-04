@@ -5,8 +5,9 @@ from datetime import datetime, timezone
 from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
-from API作品.routes.cart import router, get_db
-from API作品.db.database import DB_PATH, get_db_connection
+from main import app
+from routes.cart import get_db
+from db.database import DB_PATH, get_db_connection
 
 
 #----------------------------------------
@@ -97,13 +98,13 @@ def seed_cart_with_item():
 #--------------------------------------
 # FastAPI 正式環境DB 替換 測試用的 Test.db
 #--------------------------------------
-router.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[get_db] = override_get_db
 
 
 #-------------------------
 # Test FastAPI
 #-------------------------
-client = TestClient(router)
+client = TestClient(app)
 
 
 def test_delete_cart_item_should_succeed():
@@ -111,7 +112,7 @@ def test_delete_cart_item_should_succeed():
     cart_id, user_id, menu_item_id = seed_cart_with_item()
 
     # When: Act (呼叫API)
-    res = client.delete(f"/api/v2/cart/{user_id}/items/{menu_item_id}")
+    res = client.delete(f"/api/v1/cart/{user_id}/items/{menu_item_id}")
 
     # Then: Assert (驗證結果)
     assert res.status_code == 200
@@ -138,7 +139,7 @@ def test_delete_cart_not_found_should_fail():
     menu_item_id = str(uuid4())
 
     # When: Act (呼叫API)
-    res = client.delete(f"/api/v2/cart/{user_id}/items/{menu_item_id}")
+    res = client.delete(f"/api/v1/cart/{user_id}/items/{menu_item_id}")
 
     # Then: Assert (驗證 cart 錯誤)
     assert res.status_code == 404
@@ -153,7 +154,7 @@ def test_delete_cart_item_not_found_should_fail():
     fake_menu_item_id = str(uuid4())
 
     # When: Act (呼叫API)
-    res = client.delete(f"/api/v2/cart/{user_id}/items/{fake_menu_item_id}")
+    res = client.delete(f"/api/v1/cart/{user_id}/items/{fake_menu_item_id}")
 
     # Then: Assert (驗證 item 錯誤)
     assert res.status_code == 404

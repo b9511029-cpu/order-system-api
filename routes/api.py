@@ -5,12 +5,10 @@
 from fastapi import APIRouter
 from routes import user,meal,cart
 
-
 # 建立統一入口
 api_router = APIRouter()
 
 # 組合路徑
 api_router.include_router(user.router)
 api_router.include_router(meal.router)
-api_router.include_router(cart.router)
-
+api_router.include_router(cart.app)

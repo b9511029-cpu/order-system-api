@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from db.database import get_db
 from repositories.cart_repository import CartRepository
 
-router = APIRouter(prefix="/cart")
+app = APIRouter(prefix="/cart")
 
 print("cart 載入時間",datetime.now().isoformat())
 
@@ -59,7 +59,7 @@ class MessageResponse(BaseModel):
 #----------------------------
 # SQLite + Add Cart
 #----------------------------
-@router.post("/{user_id}/items", status_code=201, response_model=CartResponse)
+@app.post("/{user_id}/items", status_code=201, response_model=CartResponse)
 def add_to_cart(user_id: int, data: AddCartItemRequest,conn=Depends(get_db)):
     # 建立時間
     now_taipei = datetime.now(timezone.utc).astimezone(ZoneInfo("Asia/Taipei")).isoformat()
@@ -122,7 +122,7 @@ def add_to_cart(user_id: int, data: AddCartItemRequest,conn=Depends(get_db)):
 #----------------------------
 # SQLite + Get Cart + 測試框架
 #----------------------------
-@router.get("/{user_id}", response_model=CartResponse)
+@app.get("/{user_id}", response_model=CartResponse)
 def get_cart(user_id: int,conn=Depends(get_db)):
 
     cart_repo = CartRepository(conn)
@@ -155,7 +155,7 @@ def get_cart(user_id: int,conn=Depends(get_db)):
 # SQLite + Patch Cart
 # (購物車通常都是局部修改居多，真實場景很少使用的put(因此沒有設計))
 #-------------------------------------------------------
-@router.patch("/{user_id}/items/{menu_item_id}", response_model=CartResponse)
+@app.patch("/{user_id}/items/{menu_item_id}", response_model=CartResponse)
 def patch_cart_items(user_id: int, menu_item_id: UUID, data: UpdateCartItemRequest,conn=Depends(get_db)):
     # 先查詢購物車
     cart_repo = CartRepository(conn)
@@ -209,7 +209,7 @@ def patch_cart_items(user_id: int, menu_item_id: UUID, data: UpdateCartItemReque
 #----------------------------
 # SQLite + Delete Cart
 #----------------------------
-@router.delete("/{user_id}/items/{menu_item_id}", response_model=CartResponse)
+@app.delete("/{user_id}/items/{menu_item_id}", response_model=CartResponse)
 def delete_cart_item(user_id: int, menu_item_id: UUID,conn=Depends(get_db)):
 
     cart_repo = CartRepository(conn)

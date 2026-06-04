@@ -5,8 +5,9 @@ from zoneinfo import ZoneInfo
 import pytest
 from uuid import uuid4
 from fastapi.testclient import TestClient
-from API作品.routes.cart import router, get_db
-from API作品.db.database import DB_PATH, get_db_connection
+from routes.cart import get_db
+from db.database import DB_PATH, get_db_connection
+from main import app
 
 
 #-----------------
@@ -64,12 +65,12 @@ def clean_db():
     conn.close()
 
 # 將正式用的db 更換成測試用db
-router.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[get_db] = override_get_db
 
 # --------------
 # 呼叫API
 # --------------
-client = TestClient(router)
+client = TestClient(app)
 
 
 #-------------------------------------------------
@@ -129,7 +130,7 @@ def test_get_cart_should_return_items():
     cart_id,user_id = seed_cart_with_items()
 
     # When: Act (呼叫API)
-    res = client.get(f"/api/v2/cart/{user_id}")
+    res = client.get(f"/api/v1/cart/{user_id}")
 
     # Then: Assert (驗證結果)
     assert res.status_code == 200
@@ -151,7 +152,7 @@ def test_get_cart_should_return_empty_items():
     cart_id, user_id = seed_cart_not_with_items() # tuple unpacking
 
     # When:  Act (呼叫 API)
-    res = client.get(f"/api/v2/cart/{user_id}")
+    res = client.get(f"/api/v1/cart/{user_id}")
 
     # Then:  Assert (驗證結果)
     assert res.status_code == 200
@@ -170,7 +171,7 @@ def test_get_cart_not_found_should_fail():
     user_id = 999
 
     # When: 呼叫 (API)
-    res = client.get(f"/api/v2/cart/{user_id}")
+    res = client.get(f"/api/v1/cart/{user_id}")
 
     # Then: Assert 驗證錯誤 404
     assert res.status_code == 404

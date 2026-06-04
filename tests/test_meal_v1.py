@@ -2,12 +2,11 @@
 # .pytest 測試起來更直覺、清晰、第三方套件、進行參數化測試(方便簡單)
 import sqlite3
 from uuid import uuid4
-from API作品.routes.meal import router
 from fastapi.testclient import TestClient
-from API作品.db.database import DB_PATH
+from db.database import DB_PATH
+from main import app
 
-
-client = TestClient(router)
+client = TestClient(app)
 
 def clear_db():
     conn = sqlite3.connect(DB_PATH)
@@ -29,7 +28,7 @@ def test_create_meal_should_succeed():
         'name': '牛肉麵',
         'price': 120,
         'description': '經典紅燒牛肉麵',
-        'image_url': 'https://example.com/beef.jpg'
+        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
     }
     # When 加入餐點
     response = client.post("/api/v1/menu",json=payload)
@@ -41,7 +40,7 @@ def test_create_meal_should_succeed():
     assert data['name'] == '牛肉麵'
     assert data['price'] == 120
     assert data['description'] == '經典紅燒牛肉麵'
-    assert data['image_url'] == 'https://example.com/beef.jpg'
+    assert data['image_url'] == 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
 
 #----------------
 # Duplicate test
@@ -55,7 +54,7 @@ def test_create_meal_duplicate_should_fail():
         'name': '牛肉麵',
         'price': 120,
         'description': '經典紅燒牛肉麵',
-        'image_url': 'https://example.com/beef.jpg'
+        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
     }
     # When: 加入第一筆餐點
     response1 = client.post("/api/v1/menu",json=payload)
@@ -81,7 +80,7 @@ def test_get_all_meals_should_succeed():
         'name': '牛肉麵',
         'price': 120,
         'description': '經典紅燒牛肉麵',
-        'image_url': 'https://example.com/beef.jpg'
+        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
     }
     # When: 加入第一筆餐點
     data = client.post("/api/v1/menu",json=payload)
@@ -136,7 +135,7 @@ def test_update_all_menu_item_should_succeed():
         'name': '牛肉麵',
         'price': 120,
         'description': '經典紅燒牛肉麵',
-        'image_url': 'https://example.com/beef.jpg'
+        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
     }
 
     # When: 加入第一筆新增
@@ -148,7 +147,7 @@ def test_update_all_menu_item_should_succeed():
         'name': '番茄牛肉麵',
         'price': 200,
         'description': '酸甜可口，香味四溢',
-        'image_url': 'https://example.com/beef.jpg'
+        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
     }
     response = client.put(f"/api/v1/menu/{menu_id}",json=update)
     # Then: 回傳成功
@@ -157,7 +156,7 @@ def test_update_all_menu_item_should_succeed():
     assert data['name'] == '番茄牛肉麵'
     assert data['price'] == 200
     assert data['description'] == '酸甜可口，香味四溢'
-    assert data['image_url'] == 'https://example.com/beef.jpg'
+    assert data['image_url'] == 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
 
 
 def test_update_menu_item_not_found_should_fail():
@@ -170,7 +169,7 @@ def test_update_menu_item_not_found_should_fail():
         'name': '番茄牛肉麵',
         'price': 200,
         'description': '酸甜可口，香味四溢',
-        'image_url': 'https://example.com/beef.jpg'
+        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
     }
     # When: DB 沒有目前餐點紀錄
     # When: 更新餐點Items
@@ -191,14 +190,14 @@ def test_update_menu_item_id_not_match_should_fail():
         'name': '牛肉麵',
         'price': 120,
         'description': '經典紅燒牛肉麵',
-        'image_url': 'https://example.com/beef.jpg'
+        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
     }
     payload_2 ={
         'id': menu_id_2,
         'name': '番茄牛肉麵',
         'price': 200,
         'description': '酸甜可口，香味四溢',
-        'image_url': 'https://example.com/beef.jpg'
+        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
     }
     # When: 加入第一筆餐點
     client.post(f"/api/v1/menu/{menu_id_1}",json=payload_1)
@@ -210,7 +209,7 @@ def test_update_menu_item_id_not_match_should_fail():
     assert response.status_code == 400
     data = response.json()
     assert data['detail'] == "item_id 與 item.id 不匹配"
-    print('測試成功:更新失敗(PUT)')
+
 
 # --------------------------------------------------------------
 # Update Menu Test (PATCH)
@@ -226,7 +225,7 @@ def test_patch_menu_item_should_succeed():
                     'name': '牛肉麵',
                     'price': 120,
                     'description': '經典紅燒牛肉麵',
-                    'image_url': 'https://example.com/beef.jpg'
+                    'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
                 }
     )
     assert res.status_code == 201
@@ -246,7 +245,7 @@ def test_patch_menu_item_should_succeed():
     assert data['name'] == '牛肉麵'
     assert data['price'] == 300
     assert data['description'] == '經典紅燒牛肉麵'
-    assert data['image_url'] == 'https://example.com/beef.jpg'
+    assert data['image_url'] == 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
 
 
 def test_patch_menu_item_not_found_source_should_fail():
@@ -261,7 +260,7 @@ def test_patch_menu_item_not_found_source_should_fail():
                     'name': '牛肉麵',
                     'price': 120,
                     'description': '經典紅燒牛肉麵',
-                    'image_url': 'https://example.com/beef.jpg'
+                    'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
                 }
     )
     assert res.status_code == 201
@@ -289,7 +288,7 @@ def test_patch_menu_item_request_not_found_should_fail():
                           'name': '乾麵',
                           'price': 60,
                           'description': '順滑爽口',
-                          'image_url': 'https://example.com/beef.jpg'
+                          'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
                       }
     )
     assert res.status_code == 201
@@ -321,7 +320,7 @@ def test_delete_one_menu_item_should_succeed():
                     'name': '牛肉麵',
                     'price': 120,
                     'description': '經典紅燒牛肉麵',
-                    'image_url': 'https://example.com/beef.jpg'
+                    'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
                 }
     )
     # When: 刪除單筆資料
@@ -343,7 +342,7 @@ def test_delete_menu_item_not_found_should_fail():
                     'name': '牛肉麵',
                     'price': 120,
                     'description': '經典紅燒牛肉麵',
-                    'image_url': 'https://example.com/beef.jpg'
+                    'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
                 }
     )
     # When: 資料不存在

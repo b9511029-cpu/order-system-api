@@ -5,8 +5,9 @@ from uuid import uuid4
 from zoneinfo import ZoneInfo
 import pytest
 from fastapi.testclient import TestClient
-from API作品.routes.cart import router, get_db
-from API作品.db.database import DB_PATH, get_db_connection
+from routes.cart import get_db
+from db.database import DB_PATH, get_db_connection
+from main import app
 
 
 #----------------------------------------
@@ -97,12 +98,12 @@ def seed_cart_with_item():
 #--------------------------------------
 # FastAPI 正式環境DB 替換 測試用的 Test.db
 #--------------------------------------
-router.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[get_db] = override_get_db
 
 #-------------------------
 # Test FastAPI
 #-------------------------
-client = TestClient(router)
+client = TestClient(app)
 
 
 # SQLite + API test
@@ -117,7 +118,7 @@ def test_patch_cart_item_should_update_quantity():
         "quantity": 5
     }
     # When: Act (呼叫API)
-    res = client.patch(f"/api/v2/cart/{user_id}/items/{menu_item_id}",
+    res = client.patch(f"/api/v1/cart/{user_id}/items/{menu_item_id}",
                        json=payload)
 
     # Then: Assert (驗證結果)
@@ -138,7 +139,7 @@ def test_patch_cart_item_should_delete_when_quantity_zero():
     }
 
     # When: Act (呼叫 API)
-    res = client.patch(f"/api/v2/cart/{user_id}/items/{menu_item_id}",
+    res = client.patch(f"/api/v1/cart/{user_id}/items/{menu_item_id}",
                        json=payload)
 
     # Then: Assert (驗證結果)
@@ -159,7 +160,7 @@ def test_patch_cart_item_not_found_should_fail():
     }
 
     # When: Act (呼叫 API)
-    res = client.patch(f"/api/v2/cart/{user_id}/items/{fake_menu_item_id}",
+    res = client.patch(f"/api/v1/cart/{user_id}/items/{fake_menu_item_id}",
                        json=payload)
 
     # Then: Assert (驗證錯誤)
@@ -176,7 +177,7 @@ def test_patch_cart_not_found_should_fail():
         "quantity": 5
     }
     # When: Act (呼叫 API)
-    res = client.patch(f"/api/v2/cart/{fake_user_id}/items/{menu_item_id}",
+    res = client.patch(f"/api/v1/cart/{fake_user_id}/items/{menu_item_id}",
                        json=payload)
     # Then: Assert (驗證錯誤)
     assert res.status_code == 404
@@ -190,7 +191,7 @@ def test_patch_cart_item_greater_than_20_should_fail():
         "quantity": 23
     }
     # When: Act (呼叫 API)
-    res = client.patch(f"/api/v2/cart/{user_id}/items/{menu_item_id}",
+    res = client.patch(f"/api/v1/cart/{user_id}/items/{menu_item_id}",
                        json=payload)
     # Then: Assert (驗證錯誤)
     assert res.status_code == 400
@@ -204,7 +205,7 @@ def test_patch_cart_item_quantity_negative_should_fail():
         "quantity": -4
     }
     # When: Act (呼叫 API)
-    res = client.patch(f"/api/v2/cart/{user_id}/items/{menu_item_id}",
+    res = client.patch(f"/api/v1/cart/{user_id}/items/{menu_item_id}",
                        json=payload)
     # Then: Assert (驗證錯誤)
     assert res.status_code == 422

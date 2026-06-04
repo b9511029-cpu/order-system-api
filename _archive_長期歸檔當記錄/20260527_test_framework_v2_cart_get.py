@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from uuid import uuid4
 from fastapi.testclient import TestClient
-from API作品.routes.cart import router, get_db
+from API作品.routes.cart import app, get_db
 from API作品.db.database import DB_PATH
 
 
@@ -64,13 +64,13 @@ def clean_db():
     conn.close()
 
 # 將正式用的db 更換成測試用db
-router.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[get_db] = override_get_db
 
 
 # --------------
 # 呼叫API
 # --------------
-client = TestClient(router)
+client = TestClient(app)
 
 
 #-------------------------------------------------

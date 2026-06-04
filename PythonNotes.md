@@ -508,3 +508,115 @@ router = APIRouter(prefix="/users")
 @router.post("/login")  
 
 cart and menu 都是一樣作法
+
+---
+
+---------------------*目前遇過算是最難解決的問題吧*-----------------------------
+## *目前進度 : API FastApi\route,拆分完成拆分檔案後* 
+### **API串接 ok**
+[user.py, menu.py , cart.py] ,全部改成 APIRoute()
+api.py[管理路徑統一]:負責組合[user,menu,cart] API routes
+main.py[管理FastAPI]:API [統一入口]  
+
+#### *測試部分 : swagger文件有建立ok,網頁測試 ok*  
+因為'餐點圖片無法顯示'->原因:是測試檔案給的圖片網址範例覆蓋前端的圖片連結
+
+### *決定修改測試檔案 : 重新建立資料庫的資料*
+*測試 API 錯誤 :*  
+_________ ERROR collecting test_user_v1.py _____________  
+ImportError while importing test module 
+'C:\Users\Jason\PycharmProjects_2024\PythonProject120250508亮點\API作品\tests\test_user_v1.py'.
+Hint: make sure your test modules/packages have valid Python names.                                                                                                                   
+Traceback:                                                                                                                                                                            
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py:88: in import_module                                                                                    
+   return _bootstrap._gcd_import(name [level:], package, level)                                                                                                                       
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                                                                                                       
+test_user_v1.py:32: in <module>                                                                                                                                                       
+   from routes.user import router                                                                                                                                                    
+E   ModuleNotFoundError: No module named 'routes'  
+[找不到 routes 資料夾路徑]
+
+
+##### *查詢 api.py [確認 API_route 有 print()]*
+
+```Python commandline
+from fastapi import APIRouter
+from routes import user, meal, cart
+
+# *建立統一入口*  
+api_router = APIRouter()
+# 組合路徑
+api_router.include_router(user.router)
+api_router.include_router(meal.router)
+api_router.include_router(cart.app)
+
+print("USER ROUTES LOADED:", user.router)
+print("MEAL ROUTES LOADED:", meal.router)
+print("CART ROUTES LOADED:", cart.app)
+```
+##### *測試程式 : 採用的是 未拆分 routes/FastAPI 前的 old routes*
+因 'API作品' 資料夾設定成[根目錄]，所以路徑層級上，不能有from API作品這一層 
+from API作品.app.user import router (old route)  
+from API作品.db.database import DB_PATH (old route)
+##### 目前少載入了一個 from main import app :
+1.未導入遷移後的`app=FastAPI()`: 
+fastapi.router 模組 不是 FastAPI 模組
+`client = TestClient(router)` 
+TestClient() 要測試的是 main.py 裡面的 `app = FastAPI()`  
+
+###### 關鍵錯誤 : 測試檔案裏面,採用的是未遷移前,舊 FastAPI() 路徑
+###### 解決方式 :
+```python commandline
+from fastapi.testclient import TestClient
+# TestClient(router),將測試對象 router -> app
+# 改成遷移到 main.app ,更新後的 測試程式 API 路徑
+from main import app
+client = TestClient(app) # 現在手動測試功能正常
+```
+
+#### 目前 Pytest 無法測試 會發生
+ImportError while importing test module 'C:\Users\Jason\PycharmProjects_2024\PythonProject120250508亮點\API作品\tests\test_user_v1.py'.
+Hint: make sure your test modules/packages have valid Python names.                                                                                                                   
+Traceback:                                                                                                                                                                            
+..\..\..\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py:88: in import_module                                                                                       
+    return _bootstrap._gcd_import(name [level:], package, level)                                                                                                                       
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                                                                                                       
+tests\test_user_v1.py:6: in <module>                                                                                                                                                  
+    from db.database import DB_PATH                                                                                                                                                   
+E   ModuleNotFoundError: No module named 'db'
+
+原因 : 當[API作品資料夾]被設定為[根目錄]時
+Pytest 要在 API作品這一層執行 pytest 才可以
+手動測試有 [Pycharm] [自動幫你補齊尋找路徑功能]，所以才可以通過測試
+Pytest [沒有自動不齊的功能]，所以在API作品這個資料夾下面建立 [pytest.ini] 檔案
+[這個檔案的用途就是在告訴 pytest 要去哪裡找測試黨 + python 去哪裡找模組]
+
+##### 用途說明:
+##### pytest.ini 的作用其實很關鍵，幫 pytest「補齊它原本不知道的專案規則」。
+##### pytest.ini = 告訴 pytest「你要在哪裡找測試 + Python 要從哪裡開始找模組」
+pytest.ini 目的，在解決「環境一致性問題」
+
+##### *Pytest.ini  content*
+[pytest]
+testpaths = tests  作用:告訴 pytest：「測試檔案都在 tests 這個資料夾」
+pythonpath = .  
+
+##### testpaths = tests
+
+*當專案結構變大時，遇到環境不一致的情況*  
+沒寫會怎樣？ pytest 會：  
+1.在整個專案亂掃  
+2.或以 cwd 當 root  
+3.有時甚至找不到測試  
+
+② pythonpath = .  
+作用: 告訴 pytest：
+「把目前資料夾（API作品）加入 Python import 搜尋路徑」
+把pytest.ini 檔案放在API作品[根目錄]裡面,就會把他加入到python搜尋路徑裡面
+
+API作品>test> test_user_v1.py
+
+[**將目前所有測試檔案更新到目前最新版本，已全部測試通過**]
+
+---
+

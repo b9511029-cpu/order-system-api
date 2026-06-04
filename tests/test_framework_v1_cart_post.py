@@ -3,8 +3,9 @@ import sqlite3
 from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
-from API作品.routes.cart import router,get_db
-from API作品.db.database import DB_PATH, get_db_connection
+from routes.cart import get_db
+from db.database import DB_PATH, get_db_connection
+from main import app
 
 
 #----------------------------
@@ -65,9 +66,9 @@ def db_clear():
 # 告訴 API 不要走正式環境 DB ,我有提供一個測試用DB給你測試
 # override_get_db -> DB PATH -> 替換過的 test.db
 #-------------------------------------------------
-router.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[get_db] = override_get_db
 
-client = TestClient(router)
+client = TestClient(app)
 
 # SQLite + API test
 #--------------------------------------------------------------
@@ -77,7 +78,7 @@ def test_add_new_cart():
     user_id = 1
     menu_item_id = str(uuid4())
     # 呼叫API
-    res1 = client.post(f"/api/v2/cart/{user_id}/items",
+    res1 = client.post(f"/api/v1/cart/{user_id}/items",
                 json={
                     "menu_item_id": menu_item_id,
                     "quantity": 3,
@@ -109,13 +110,13 @@ def test_add_new_cart():
 def test_add_same_item():
     user_id = 2
     menu_item_id = str(uuid4()) # 使用同一個購物車商品編號
-    client.post(f"/api/v2/cart/{user_id}/items",
+    client.post(f"/api/v1/cart/{user_id}/items",
                 json={
                     "menu_item_id": menu_item_id,
                     "quantity": 3
                 }
     )
-    res = client.post(f"/api/v2/cart/{user_id}/items",
+    res = client.post(f"/api/v1/cart/{user_id}/items",
                        json={
                            "menu_item_id": menu_item_id,
                            "quantity": 4
@@ -134,13 +135,13 @@ def test_add_different_items():
     user_id = 3
     item1 = str(uuid4())
     item2 = str(uuid4())
-    client.post(f"/api/v2/cart/{user_id}/items",
+    client.post(f"/api/v1/cart/{user_id}/items",
                 json={
                     "menu_item_id": item1,
                     "quantity": 3
                 })
 
-    res = client.post(f"/api/v2/cart/{user_id}/items",
+    res = client.post(f"/api/v1/cart/{user_id}/items",
                 json={
                     "menu_item_id": item2,
                     "quantity": 4
@@ -163,7 +164,7 @@ def test_add_item_with_min_quantity_should_succeed():
     menu_item_id = str(uuid4())
 
     # When: 加入 quantity = 1
-    res = client.post(f"/api/v2/cart/{user_id}/items",
+    res = client.post(f"/api/v1/cart/{user_id}/items",
                 json={
                     'menu_item_id': menu_item_id,
                     'quantity': 1
@@ -183,7 +184,7 @@ def test_add_item_with_max_quantity_should_succeed():
     user_id = 5
     menu_item_id = str(uuid4())
     # When 加入 quantity = 20
-    res = client.post(f"/api/v2/cart/{user_id}/items",
+    res = client.post(f"/api/v1/cart/{user_id}/items",
                        json={
                            'menu_item_id': menu_item_id,
                            'quantity':20
@@ -202,7 +203,7 @@ def test_add_item_with_quantity_zero_should_fail():
     menu_item_id = str(uuid4())
 
     # When: 加入 quantity = 0
-    res = client.post(f"/api/v2/cart/{user_id}/items",
+    res = client.post(f"/api/v1/cart/{user_id}/items",
                 json={
                     "menu_item_id": menu_item_id,
                     "quantity": 0
@@ -220,7 +221,7 @@ def test_add_item_with_quantity_21_should_fail():
     menu_item_id = str(uuid4())
 
     # When: 加入 quantity = 21
-    res = client.post(f"/api/v2/cart/{user_id}/items",
+    res = client.post(f"/api/v1/cart/{user_id}/items",
                          json={
                             'menu_item_id': menu_item_id,
                              "quantity": 21
@@ -239,7 +240,7 @@ def test_add_item_with_negative_quantity_should_fail():
     menu_item_id = str(uuid4())
 
     # When: 加入 quantity = -1
-    res = client.post(f"/api/v2/cart/{user_id}/items",
+    res = client.post(f"/api/v1/cart/{user_id}/items",
                           json={
                             "menu_item_id": menu_item_id,
                             "quantity": -1
@@ -261,7 +262,7 @@ def test_add_item_with_str_quantity_should_fail():
     menu_item_id = str(uuid4())
 
     # When: 傳入非數字 quantity (string)
-    res = client.post(f"/api/v2/cart/{user_id}/items",
+    res = client.post(f"/api/v1/cart/{user_id}/items",
                           json={
                             "menu_item_id": menu_item_id,
                             "quantity": "string"
@@ -281,7 +282,7 @@ def test_add_item_with_none_quantity_should_fail():
     menu_item_id = str(uuid4())
 
     # When: 傳入非合法 quantity (None)
-    res = client.post(f"/api/v2/cart/{user_id}/items",
+    res = client.post(f"/api/v1/cart/{user_id}/items",
                            json={
                             "menu_item_id": menu_item_id,
                             "quantity": None
@@ -300,7 +301,7 @@ def test_add_item_with_missing_field_should_fail():
     user_id = 11
     menu_item_id = str(uuid4())
     # When: 沒有傳入 quantity field
-    res = client.post(f"/api/v2/cart/{user_id}/items",
+    res = client.post(f"/api/v1/cart/{user_id}/items",
                       json={
                         "menu_item_id":menu_item_id
                       }
@@ -317,7 +318,7 @@ def test_add_item_with_invalid_uuid_should_fail():
     # Given: 新增使用者與商品
     user_id = 12
     # When: 傳入 request field not is uuid
-    res = client.post(f"/api/v2/cart/{user_id}/items",
+    res = client.post(f"/api/v1/cart/{user_id}/items",
                       json={
                         "menu_item_id": "not a uuid",
                         "quantity": 3
@@ -334,7 +335,7 @@ def test_add_item_empty_payload_should_fail():
     # Given: 新增使用者
     user_id = 13
     # When: 傳入 Empty Payload
-    res = client.post(f"/api/v2/cart/{user_id}/items",
+    res = client.post(f"/api/v1/cart/{user_id}/items",
                       json={})
     # 回傳驗證錯誤
     assert res.status_code == 422
@@ -353,7 +354,7 @@ def test_add_same_item_with_accumulation_exceeding_max_quantity_should_fail():
     menu_item_id = str(uuid4())
 
     # When: 第一次加入
-    res_1 = client.post(f"/api/v2/cart/{user_id}/items",
+    res_1 = client.post(f"/api/v1/cart/{user_id}/items",
                 json={
                     "menu_item_id": menu_item_id,
                     "quantity": 15
@@ -362,7 +363,7 @@ def test_add_same_item_with_accumulation_exceeding_max_quantity_should_fail():
     assert res_1.status_code == 201
 
     # When: 第二次加入
-    res_2= client.post(f"/api/v2/cart/{user_id}/items",
+    res_2= client.post(f"/api/v1/cart/{user_id}/items",
                       json={
                         "menu_item_id": menu_item_id,
                         "quantity": 6
