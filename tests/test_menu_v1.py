@@ -8,12 +8,45 @@ from main import app
 
 client = TestClient(app)
 
+
 def clear_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM menus")
     conn.commit()
     conn.close()
+
+# -----------------
+# Create multiple data
+# -----------------
+def seed_menus(client):
+    menus = [
+        {"name": "牛肉麵", "price": 120, "description": "紅燒牛肉麵", "image_url": "https://i.ibb.co/k6Hd5RVm/image.jpg"},
+        {"name": "雞腿便當", "price": 110, "description": "炸雞腿便當", "image_url": "https://i.ibb.co/tMDZs0K0/php-Gqw-Cee.jpg"},
+        {"name": "排骨飯", "price": 100, "description": "古早味排骨飯", "image_url": "https://i.ibb.co/6JHYJ3DV/1.jpg"},
+        {"name": "滷肉飯", "price": 60, "description": "台灣經典滷肉飯", "image_url": "https://i.ibb.co/20cCxG9t/image.jpg"},
+        {"name": "水餃", "price": 70, "description": "手工水餃", "image_url": "https://i.ibb.co/Mx1jhJ3m/image.jpg"},
+        {"name": "陽春麵", "price": 50, "description": "簡單湯麵", "image_url": "https://i.ibb.co/8DBSb97j/image.jpg"},
+    ]
+
+    for m in menus:
+        payload = {
+            "id": str(uuid4()),
+            "name": m["name"],
+            "price": m["price"],
+            "description": m["description"],
+            "image_url": m['image_url']
+        }
+        client.post("/api/v1/menu", json=payload)
+
+def test_menu_list_should_succeed():
+    clear_db()
+
+    seed_menus(client)
+
+    response = client.get("/api/v1/menu")
+    data = response.json()
+    assert len(data) >= 5
 
 # -----------------
 # Create Menu Test
@@ -28,8 +61,9 @@ def test_create_meal_should_succeed():
         'name': '牛肉麵',
         'price': 120,
         'description': '經典紅燒牛肉麵',
-        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
-    }
+        'image_url': 'ttps://i.ibb.co/k6Hd5RVm/image.jpg'
+        }
+
     # When 加入餐點
     response = client.post("/api/v1/menu",json=payload)
 
@@ -40,7 +74,7 @@ def test_create_meal_should_succeed():
     assert data['name'] == '牛肉麵'
     assert data['price'] == 120
     assert data['description'] == '經典紅燒牛肉麵'
-    assert data['image_url'] == 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+    assert data['image_url'] == 'ttps://i.ibb.co/k6Hd5RVm/image.jpg'
 
 #----------------
 # Duplicate test
@@ -54,7 +88,7 @@ def test_create_meal_duplicate_should_fail():
         'name': '牛肉麵',
         'price': 120,
         'description': '經典紅燒牛肉麵',
-        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+        'image_url': ''
     }
     # When: 加入第一筆餐點
     response1 = client.post("/api/v1/menu",json=payload)
@@ -80,7 +114,7 @@ def test_get_all_meals_should_succeed():
         'name': '牛肉麵',
         'price': 120,
         'description': '經典紅燒牛肉麵',
-        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+        'image_url': ''
     }
     # When: 加入第一筆餐點
     data = client.post("/api/v1/menu",json=payload)
@@ -109,7 +143,7 @@ def test_get_single_meal_should_success():
         "image_url": None
     }
     # When: 加入第一個餐點
-    client.post("/api/v1/menu/",json=payload)
+    client.post("/api/v1/menu",json=payload)
     # When: 查詢一個餐點
     response = client.get(f"/api/v1/menu/{menu_id}")
 
@@ -135,11 +169,11 @@ def test_update_all_menu_item_should_succeed():
         'name': '牛肉麵',
         'price': 120,
         'description': '經典紅燒牛肉麵',
-        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+        'image_url': ''
     }
 
     # When: 加入第一筆新增
-    client.post("/api/v1/menu/",json=payload)
+    client.post("/api/v1/menu",json=payload)
 
     # When: 加入更新資料
     update = {
@@ -147,7 +181,7 @@ def test_update_all_menu_item_should_succeed():
         'name': '番茄牛肉麵',
         'price': 200,
         'description': '酸甜可口，香味四溢',
-        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+        'image_url': ''
     }
     response = client.put(f"/api/v1/menu/{menu_id}",json=update)
     # Then: 回傳成功
@@ -156,7 +190,7 @@ def test_update_all_menu_item_should_succeed():
     assert data['name'] == '番茄牛肉麵'
     assert data['price'] == 200
     assert data['description'] == '酸甜可口，香味四溢'
-    assert data['image_url'] == 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+    assert data['image_url'] == ''
 
 
 def test_update_menu_item_not_found_should_fail():
@@ -169,7 +203,7 @@ def test_update_menu_item_not_found_should_fail():
         'name': '番茄牛肉麵',
         'price': 200,
         'description': '酸甜可口，香味四溢',
-        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+        'image_url': ''
     }
     # When: DB 沒有目前餐點紀錄
     # When: 更新餐點Items
@@ -190,14 +224,14 @@ def test_update_menu_item_id_not_match_should_fail():
         'name': '牛肉麵',
         'price': 120,
         'description': '經典紅燒牛肉麵',
-        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+        'image_url': ''
     }
     payload_2 ={
         'id': menu_id_2,
         'name': '番茄牛肉麵',
         'price': 200,
         'description': '酸甜可口，香味四溢',
-        'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+        'image_url': ''
     }
     # When: 加入第一筆餐點
     client.post(f"/api/v1/menu/{menu_id_1}",json=payload_1)
@@ -219,13 +253,13 @@ def test_patch_menu_item_should_succeed():
     # Given: 新增商品
     menu_id_1 = str(uuid4())
     # When: 新增第一筆餐點
-    res = client.post("/api/v1/menu/",
+    res = client.post("/api/v1/menu",
                 json={
                     'id':menu_id_1,
                     'name': '牛肉麵',
                     'price': 120,
                     'description': '經典紅燒牛肉麵',
-                    'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+                    'image_url': ''
                 }
     )
     assert res.status_code == 201
@@ -245,7 +279,7 @@ def test_patch_menu_item_should_succeed():
     assert data['name'] == '牛肉麵'
     assert data['price'] == 300
     assert data['description'] == '經典紅燒牛肉麵'
-    assert data['image_url'] == 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+    assert data['image_url'] == ''
 
 
 def test_patch_menu_item_not_found_source_should_fail():
@@ -254,13 +288,13 @@ def test_patch_menu_item_not_found_source_should_fail():
     menu_id_1 = str(uuid4())
     menu_id_2 = str(uuid4())
     # When: 加入一筆餐點
-    res = client.post("/api/v1/menu/",
+    res = client.post("/api/v1/menu",
                 json={
                     'id': menu_id_1,
                     'name': '牛肉麵',
                     'price': 120,
                     'description': '經典紅燒牛肉麵',
-                    'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+                    'image_url': ''
                 }
     )
     assert res.status_code == 201
@@ -288,7 +322,7 @@ def test_patch_menu_item_request_not_found_should_fail():
                           'name': '乾麵',
                           'price': 60,
                           'description': '順滑爽口',
-                          'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+                          'image_url': ''
                       }
     )
     assert res.status_code == 201
@@ -314,13 +348,13 @@ def test_delete_one_menu_item_should_succeed():
     # Given: 新增商品
     menu_id_1 = str(uuid4())
     # When: 加入一筆餐點
-    client.post("/api/v1/menu/",
+    client.post("/api/v1/menu",
                 json={
                     'id': menu_id_1,
                     'name': '牛肉麵',
                     'price': 120,
                     'description': '經典紅燒牛肉麵',
-                    'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+                    'image_url': ''
                 }
     )
     # When: 刪除單筆資料
@@ -336,13 +370,13 @@ def test_delete_menu_item_not_found_should_fail():
     menu_id_2 = str(uuid4())
 
     # When: 加入第一筆餐點
-    client.post("/api/v1/menu/",
+    client.post("/api/v1/menu",
                 json={
                     'id': menu_id_1,
                     'name': '牛肉麵',
                     'price': 120,
                     'description': '經典紅燒牛肉麵',
-                    'image_url': 'https://i.ibb.co/Kxg63Z90/8869cd181686929d.webp'
+                    'image_url': ''
                 }
     )
     # When: 資料不存在
