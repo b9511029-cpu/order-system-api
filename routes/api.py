@@ -3,12 +3,12 @@
 # 未來加入API,不用動 main.py
 # 可以做 versioning(v1/v2)
 from fastapi import APIRouter
-from routes import user,meal,cart
+from routes import user,menu,cart
 
 # 建立統一入口
 api_router = APIRouter()
 
 # 組合路徑
 api_router.include_router(user.router)
-api_router.include_router(meal.router)
-api_router.include_router(cart.app)
+api_router.include_router(menu.router)
+api_router.include_router(cart.router)

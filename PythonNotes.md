@@ -541,18 +541,18 @@ E   ModuleNotFoundError: No module named 'routes'
 
 ```Python commandline
 from fastapi import APIRouter
-from routes import user, meal, cart
+from routes import user, menu, cart
 
 # *建立統一入口*  
 api_router = APIRouter()
 # 組合路徑
 api_router.include_router(user.router)
 api_router.include_router(meal.router)
-api_router.include_router(cart.app)
+api_router.include_router(cart.router)
 
 print("USER ROUTES LOADED:", user.router)
 print("MEAL ROUTES LOADED:", meal.router)
-print("CART ROUTES LOADED:", cart.app)
+print("CART ROUTES LOADED:", cart.router)
 ```
 ##### *測試程式 : 採用的是 未拆分 routes/FastAPI 前的 old routes*
 因 'API作品' 資料夾設定成[根目錄]，所以路徑層級上，不能有from API作品這一層 
@@ -618,5 +618,55 @@ API作品>test> test_user_v1.py
 
 [**將目前所有測試檔案更新到目前最新版本，已全部測試通過**]
 
+----------------------------
+#### 訂單（order）API 開發筆記
+----------------------------
+Order 代表： 已送出、成為歷史紀錄、不能隨意修改
+
+所以本質上： Order = Cart 的快照（Snapshot）
+
+
+
+
+
+
+
+
+
+
 ---
 
+### 架構拆分 Routes : 將 route 裡的 商業邏輯 折分出來
+##### 目前的架構，算是小型架構的雛形，但是沒有 order （訂單），會讓面試官覺的這是個還沒有完成的餐點系統，因為能下訂單才算是完整流程
+API作品/ 
+├── db/
+├── repository/
+├── routes/
+├── tests/
+└── main.py
+
+##### 中型架構
+API作品/ 
+│
+├─ db/
+├─ repository/ 
+├─ services/  # Business logic 商業邏輯層 
+├─ routes/    # API routes 路徑層
+├─ schemas/   # API 的「輸入格式」與「輸出格式」，資料格式定義層
+├─ tests/
+├─ main.py
+└─ requirements.txt
+
+*（之後 order function complete 後，會將 schemas and services 兩層責任，折分成 資料格式定義層 和 商業邏輯層*
+
+
+##### 建議 修改
+
+所以以你現在的階段來看，我的排序會是：
+
+1. 先完成 Order API
+2. 建立 schemas/
+3. 如果 Order 邏輯變複雜，再新增 order_service.py
+4. 其他 API 暫時維持原架構
+
+這樣改動最小，也最符合 FastAPI 專案常見的成長路徑。
