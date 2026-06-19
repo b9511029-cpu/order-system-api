@@ -625,9 +625,131 @@ Order 代表： 已送出、成為歷史紀錄、不能隨意修改
 
 所以本質上： Order = Cart 的快照（Snapshot）
 
+設計想法、需求、流程，比寫程式碼更重要。
+
+既然是點餐系統，我們先不要想資料和 API ，而是先回答：
+「 Order 在我的系統裡代表什麼？」
+一般點餐流程 ↓
+最常見的流程
+user
+↓
+瀏覽  Menu
+↓ 點餐
+加入購物車
+↓
+送出訂單
+↓
+建立 Order
+↓
+店家開始製作
+↓
+完成
+
+Cart 代表： 尚未結帳、可修改、可刪除、可增加數量
+
+Order 代表： 已送出，成為歷史記錄、不能隨更改
+
+所以本質上： Order 是 Cart 的快照(Snapshot)
+
+先思考的問題
+（1）我的系統有店家端嗎？
+    例如：顧客下單 → 店家接單 → 制作中 → 完成
+（2）Order 完成，需要回覆狀況
+    Order 就會需要回覆狀態，所以才會 Enumerate(Enum) package 定義固定的回覆訊息，以免手動回覆出見少打字元狀況。
+（3）送出訂訂單以後 Cart 要不要清空？
+    大部分情況：要清空 cart, 代表 cart 的工作已經完成了。
+（4）訂單價格，要不要保存？
+    ● 假設： 今天 "牛肉麵 120" ， 明天改價 "牛肉麵 100"
+    ● 昨天的訂單還是 "120"，所以 order 要保存的是當時的價格，而不是要去 menu 再查一次。
+（5）訂單是否取消呢？
+    ● pending(待辦中) → 後面 cancel 
+    ● 還是建立後不可取消呢？
+    這會影響 API 設計。
+
+（6）● 要考慮設計的電商類型: 目前這種適合類型是 → Uber Eats 類型
+User 1 : 1 Cart
+Cart 1 : N CartItem
+
+這個方向我認為很適合 Uber Eats 類型。
+多設計一個 OrderItem 是因為當一個訂單可以有很多餐點，這樣會比全部塞進 Order 還要好維護
+（7）Order 可以改嗎？ 
+    ● order 不能改，已經是歷史記錄了。
+    ● cart 可以改，因為它只是狀態而已，隨時都可以改的。
+
+（8）建立 Order 時的流程
+    取得 購物車 cart
+    ↓
+    檢查 購物車是否為空
+    ↓
+    取得 OrderItem
+    ↓
+    計算 total_amount
+    ↓
+    建立 Order 
+    ↓
+    清空 Cart
+（9）Order API 最少要幾隻呢？
+    ● POST  /order
+    ● GET   /orders
+    ● GET   /order/{order_id}
+    ● PATCH /order/{order_id}/cancel
 
 
+*patch 適合做 cancel API*
+{
+  "id": "123",
+  "status": "pending" → cancelled 
+   → 本質上是：侷部狀態會改變，但會保留其他記錄，如（消費記錄、金流記錄、稽核記錄）。
+}
 
+● 主要是因為，cancel 是修改訂單 → 侷部狀態，並不是在刪除資料。
+1.delete：並不是在改變狀態，而是在讓整筆資料消失，所以並不適合這樣做。
+2.put：並不適合用來改侷部狀態，所以如果使用的話，會讓整筆資料不見。
+3.patch：比較自然、也比較符合 Restful 習慣上設計。
+
+#### from enum import Enum ？
+from enum import Enum 是用來建立固定選項的列舉型別（Enum），避免程式裡到處出現容易打錯的字串。
+例如：
+
+from enum import Enum
+
+class OrderStatus(str, Enum): # 建立固定的選項，當 order 要從取得 status 時，會從定義的選項使用
+    pending = "pending"
+    completed = "completed"
+    cancelled = "cancelled"
+
+class Order(BaseModel):
+    id: UUID
+    user_id: int
+    total_amount: int
+    status: OrderStatus   # BaseModel 會驗證取得的是不是定義的中狀態
+    created_at: datetime
+    items: List[OrderItem]
+
+之後就可以用： OrderStatus.pending
+而不是直接寫："pending"
+
+這樣比較安全，也方便 FastAPI 自動驗證資料。
+
+#### order.post integration test（整合測試）
+user → cart → cart_items → menu → order → order_item → clear cart
+所以這不是做單點測試，是做「結帳流程測試」
+
+測試分成 「三個層級」
+
+（一）Arrange (準備資料)
+（1）user_id = 1
+（2）cart by user
+（3）menu_item
+（4）cart_item
+（二）Act （呼叫API）
+clien.post(...,params={user_id:1})
+（三）Assert（驗證結果）
+（1）response 驗證成功 → status.code == 201
+（2）order 有被建立 → order table 有資料
+（3）cart 被清空(重要business rule) → cart=[]
+
+order 主要是在測試: 整個「checkout business flow 有沒有正常運作」
 
 
 
@@ -670,3 +792,85 @@ API作品/
 4. 其他 API 暫時維持原架構
 
 這樣改動最小，也最符合 FastAPI 專案常見的成長路徑。
+
+#### Test order 錯誤問題
+1、建立 meal_id 發生取值中斷，因在 for loop 內層的取值過程中 加入了決䇿判斷。
+2、當 api 取到第一筆 meal_id 時就結束流程，造成第二筆資料無法傳值，才會發生 
+（index error→ TypeError: list indices must be integers or slices, not str）
+
+``` Python commandline
+def test_checkout_convert_cart_to_order_should_succeed():
+
+    # Arrange cart（準備資料）
+    user = {
+        "user_id":1,
+        "user_name":"peter",
+        "email":"xxxxx@mail.com",
+        "password":"1123456789",
+        "created_at":datetime.now().isoformat()
+    }
+    # Act : 建立使用者
+    response = client.post(f"/api/v1/users/",json=user)
+
+    data = response.json()
+
+    # 取得 user_id
+    user_id = data["user_id"]
+# -----------------------------------
+    # 建立餐點
+    # 準備餐點的資料
+    menus = [
+        {"name": "漢堡", "price": 100, "description": "鮮嫩多汁",
+        "image_url": "https://i.ibb.co/k6Hd5RVm/image.jpg"},
+        {"name": "薯條", "price": 50, "description": "好好吃",
+        "image_url": "https://i.ibb.co/tMDZs0K0/php-Gqw-Cee.jpg"}
+    ]
+
+    menu_ids = {} # 裝 餐點的 id
+
+    for m in menus:  # for ... in ... ，自動讀取每一取資駃，交給 api
+        payload = {
+            "id": str(uuid4()),
+            "name": m["name"],
+            "price": m["price"],
+            "description": m["description"],
+            "image_url": m['image_url']
+        }
+        # 當 api 被呼叫時，會取回每一筆 for m item
+        response = client.post("/api/v1/menu", json=payload)
+        assert response.status_code == 201
+        data = response.json() # 將全部資料轉換成 json() 格式
+
+        # 建立字典(key:name,value:id)，取得餐點資料的 id
+        # 可讀性加強，取值更準確，用 index 會有 位置錯誤問題
+        menu_ids[data["name"]] = data["id"]
+    """ ↑ 正在建立餐點資料
+        burger_id = menu_ids["漢堡"] 
+        fries_id = menu_ids["薯條"]
+    錯誤點:在資料建立未完成前（與資料流程並排），就使用資料（造成取值中𣃔）
+    """
+    # 取得 menu_id 值
+    burger_id = menu_ids["漢堡"]
+    fries_id = menu_ids["薯條"]
+
+# -----------------------------------
+    # 建立購物車商品
+    # （建立購物車條件：需要取得 user_id and meal_id
+    response = client.post(
+        f"/api/v1/cart/{user_id}/items",
+        json={
+            "menu_item_id": burger_id,
+            "quantity": 2
+        }
+    ) # 第一筆商品
+    assert response.status_code == 201
+
+    response = client.post(
+        f"/api/v1/cart/{user_id}/items",
+        json={
+            "menu_item_id": fries_id,
+            "quantity": 1
+        }
+    ) # 第二筆商品
+    assert response.status_code == 201
+```

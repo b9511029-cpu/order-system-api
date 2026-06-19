@@ -93,6 +93,14 @@ class CartRepository:
         )
         self.db.commit()
 
+    def clear_cart_items(self, cart_id):
+        # Order 建立後，要清除 cart_items
+        cursor = self.db.cursor()
+
+        cursor.execute("DELETE FROM cart_items WHERE cart_id = ?", (cart_id,))
+
+        self.db.commit()
+
     def update_cart_item_quantity(self, qty, c_id, m_i_id):
 
         cursor = self.db.cursor()

@@ -51,5 +51,33 @@ cursor.execute("""
         )
 """)
 
+# CREATE TABLE order_items
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS order_items(
+        id TEXT PRIMARY KEY,
+        order_id TEXT NOT NULL,
+        
+        menu_item_id TEXT NOT NULL,
+        menu_name TEXT NOT NULL,
+        
+        unit_price INTEGER NOT NULL,
+        quantity INTEGER NOT NULL,
+        
+        FOREIGN KEY (order_id) REFERENCES orders (id)
+    )
+""")
+
+
+# CREATE TABLE Orders
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS orders(
+        id TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        total_amount INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )
+""")
+
 conn.commit()
 conn.close()

@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 from routes.api import api_router
 from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI()
 
 app.add_middleware(
@@ -11,6 +12,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+def test_show_route():
+    for route in app.routes:
+        print("routes",route)
 
 # register routers
 app.include_router(api_router, prefix="/api/v1")

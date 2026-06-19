@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent # 找到這個檔案的根目錄
-DB_PATH = BASE_DIR /"db"/"app.db" # 將根目錄的路徑+資料庫的路徑 = 資料庫完整路徑(提供給資料庫連線使用)
+DB_PATH = BASE_DIR /"db"/"test.db" # 將根目錄的路徑+資料庫的路徑 = 資料庫完整路徑(提供給資料庫連線使用)
 DB_PATH.parent.mkdir(parents=True, exist_ok=True) # 確保資料夾存在，如果不存在就幫你建立(自動補齊環境差異)
 
 def get_db_connection():
